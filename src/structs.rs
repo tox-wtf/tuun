@@ -291,14 +291,16 @@ impl Track {
             .map(|(k, v)| (k.to_lowercase(), v.clone()))
             .collect();
 
-        let filepath = match self.query_filepath().await {
-            | Ok(f) => Some(f),
-            | Err(e) => {
-                warn!("Couldn't get filepath: {e}");
-                warn!("Metadata might be less accurate");
-                None
-            },
-        };
+        let mut filepath: Option<PathBuf> = None;
+        for _ in 0..4 {
+            if let Ok(path) = self.query_filepath().await {
+                filepath = Some(path);
+            }
+        }
+
+        if filepath.is_none() {
+            warn!("Couldn't query filepath; expect inaccurate metadata");
+        }
 
         let tag = if let Some(f) = filepath
             && let Some(ext) = f.extension()
