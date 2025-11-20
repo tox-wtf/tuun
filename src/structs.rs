@@ -44,6 +44,8 @@ use crate::{
 #[derive(Debug, Clone)]
 pub struct Track {
     pub arturl:   String,
+    pub artist_url: Option<String>,
+    pub artist_pfp: Option<String>,
     pub srcurl:   Option<String>,
     pub title:    String,
     pub artist:   String,
@@ -57,6 +59,8 @@ impl Default for Track {
     fn default() -> Self {
         Self {
             arturl:   String::new(),
+            artist_url:   None,
+            artist_pfp:   None,
             srcurl:   None,
             title:    String::new(),
             artist:   String::new(),
@@ -149,6 +153,7 @@ impl Track {
 
     #[instrument(skip(data, tag))]
     pub fn get_arturl(data: &serde_json::Map<String, Value>, tag: Option<&Tag>) -> Option<String> {
+        debug!("Attempting to get cover art URL");
         if let Some(url) = data.get("arturl").and_then(|v| v.as_str()) {
             debug!("Using key 'arturl' from mpv's metadata");
             return Some(url.to_string());
@@ -156,15 +161,24 @@ impl Track {
 
         if let Some(tag) = tag {
             let arturl = tag.frames().find_map(|f| match f.content() {
-                | Content::ExtendedLink(l) if l.description == "Cover" => Some(l.link.clone()),
+                | Content::ExtendedLink(l) if l.description.eq_ignore_ascii_case("front cover") => {
+                    debug!("Found under front cover");
+                    Some(l.link.clone())
+                }
+                | Content::ExtendedLink(l) if l.description.eq_ignore_ascii_case("cover") => {
+                    debug!("Found under cover");
+                    Some(l.link.clone())
+                }
                 | Content::ExtendedText(t) if t.description == "arturl" => {
+                    debug!("Found under deprecated extended text 'arturl'");
+                    warn!("Deprecated metadata format for cover art URL");
                     Some(strip_null(&t.value))
-                },
+                }
                 | _ => None,
             });
 
             if arturl.is_none() {
-                warn!("Couldn't find srcurl in extended text or cover in extended link frames");
+                warn!("Couldn't find arturl in extended text or cover in extended link frames");
             }
 
             return arturl;
@@ -172,6 +186,53 @@ impl Track {
 
         None
     }
+
+    #[instrument(skip(tag))]
+    pub fn get_artisturl(tag: Option<&Tag>) -> Option<String> {
+        debug!("Attempting to get primary artist URL");
+
+        if let Some(tag) = tag {
+            let artist_url = tag.frames().find_map(|f| match f.content() {
+                | Content::ExtendedLink(l) if l.description.eq_ignore_ascii_case("artist homepage") => {
+                    debug!("Found under artist homepage");
+                    Some(l.link.clone())
+                }
+                | _ => None,
+            });
+
+            if artist_url.is_none() {
+                warn!("Couldn't find artist_url in extended link frames");
+            }
+
+            return artist_url;
+        }
+
+        None
+    }
+
+    #[instrument(skip(tag))]
+    pub fn get_artistpfp(tag: Option<&Tag>) -> Option<String> {
+        debug!("Attempting to get primary artist profile picture");
+
+        if let Some(tag) = tag {
+            let artist_pfp = tag.frames().find_map(|f| match f.content() {
+                | Content::ExtendedLink(l) if l.description.eq_ignore_ascii_case("artist picture") => {
+                    debug!("Found under artist picture");
+                    Some(l.link.clone())
+                }
+                | _ => None,
+            });
+
+            if artist_pfp.is_none() {
+                warn!("Couldn't find artist_url in extended link frames");
+            }
+
+            return artist_pfp;
+        }
+
+        None
+    }
+
 
     #[instrument(skip(data, tag))]
     pub fn get_srcurl(data: &serde_json::Map<String, Value>, tag: Option<&Tag>) -> Option<String> {
@@ -275,6 +336,8 @@ impl Track {
             .map_or_else(|| CONFIG.discord.fallback_art.clone(), |u| urlencode(&u));
 
         self.srcurl = Self::get_srcurl(&data, tag.as_ref()).map(|u| urlencode(&u));
+        self.artist_url = Self::get_artisturl(tag.as_ref()).map(|u| urlencode(&u));
+        self.artist_pfp = Self::get_artistpfp(tag.as_ref()).map(|u| urlencode(&u));
 
         debug!("Attempting to find duration");
         // duration is not technically metadata but i count it as such

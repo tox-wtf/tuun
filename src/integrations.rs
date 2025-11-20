@@ -219,13 +219,18 @@ pub async fn discord_rpc(track: Track, now_ago: Duration) -> Result<()> {
 #[instrument(skip(track))]
 fn create_rpc_payload(track: &Track, now_ago: Duration) -> Activity<'_> {
     debug!("Encoded arturl is 'track.arturl'");
+
+    let small_image = track.artist_pfp.as_ref().unwrap_or(&CONFIG.discord.small_image);
+    let small_text = track.get_primary_artist();
+    let small_url = track.artist_url.as_deref().unwrap_or("https://github.com/tox-wtf/tuun");
+
     let assets = activity::Assets::new()
         .large_image(&track.arturl)
         .large_text(&track.album)
         .large_url(&track.arturl)
-        .small_image(&CONFIG.discord.small_image)
-        .small_text(&CONFIG.discord.small_text)
-        .small_url("https://github.com/tox-wtf/tuun");
+        .small_image(small_image)
+        .small_text(small_text)
+        .small_url(small_url);
     debug!("Created rich presence activity assets");
 
     let now = SystemTime::now();
@@ -240,7 +245,17 @@ fn create_rpc_payload(track: &Track, now_ago: Duration) -> Activity<'_> {
         .start(start.as_millis() as i64)
         .end(end.as_millis() as i64);
 
-    let payload = if let Some(srcurl) = &track.srcurl {
+    let payload = if let (Some(artist_url), Some(srcurl)) = (&track.artist_url, &track.srcurl) {
+        activity::Activity::new()
+            .state(&track.artist)
+            .state_url(artist_url)
+            .details(&track.title)
+            .details_url(srcurl)
+            .assets(assets)
+            .activity_type(activity::ActivityType::Listening)
+            .status_display_type(StatusDisplayType::Details)
+            .timestamps(timestamp)
+    } else if let Some(srcurl) = &track.srcurl {
         activity::Activity::new()
             .state(&track.artist)
             .details(&track.title)
