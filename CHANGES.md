@@ -7,6 +7,28 @@
 > Major ones are prefixed with **[!!]**.
 
 
+## 5.9.0 - 2025-11-23 22:03:57 -0600
+
+### Features
+
+ - Use release script
+ - Add "Muira," to artists with commas
+ - **[!]** New metadata fields
+
+### Fixes
+
+ - Account for v prefix attempt 3
+ - Account for v prefix properly
+ - Account for v prefix in old tags in release script
+ - Retry filepath query
+ - Create tmpdir with quu if needed
+
+### Chores
+
+ - Update dependencies
+ - Update dependencies
+
+
 ## 5.8.0
 - Tweak config and make defaults consistent
 - Miscellaneous cleanup
