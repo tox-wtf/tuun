@@ -121,6 +121,7 @@ impl Default for GeneralConfig {
                 "Go Robot, Go!".into(),
                 "What Price, Wonderland?".into(),
                 "Hey, Revolution!".into(),
+                "Muira,".into(),
             ],
             shuffle:                 true,
             playlist:                "/tmp/tuun/all.tpl".to_owned(),

@@ -44,6 +44,7 @@ artists_with_commas = [
     "Go Robot, Go!",
     "What Price, Wonderland?",
     "Hey, Revolution!",
+    "Muira,",
 ]
 
 # `$HOME` and `~` are the only path expansions allowed
