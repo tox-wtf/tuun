@@ -43,7 +43,7 @@ new_tag="$new_tag_major.$new_tag_minor.$new_tag_patch"
 
 # Update Cargo version
 old_sum=$(sha256sum Cargo.toml)
-sed -i "s|version = \"$old_tag\"|version = \"$new_tag\"|" Cargo.toml
+sed -i "s|version = \"${old_tag#v}\"|version = \"$new_tag\"|" Cargo.toml
 new_sum=$(sha256sum Cargo.toml)
 
 if [[ "$old_sum" == "$new_sum" ]]; then
