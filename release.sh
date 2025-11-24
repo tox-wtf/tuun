@@ -17,7 +17,7 @@ die() {
 make || die "Build failed"
 
 # Get old semver
-old_tag=$(git describe --tags --abbrev=0 @^)
+old_tag=$(git describe --tags --abbrev=0 @^ | tr -d v)
 old_tag_major=$(echo "$old_tag" | cut -d. -f1)
 old_tag_minor=$(echo "$old_tag" | cut -d. -f2)
 old_tag_patch=$(echo "$old_tag" | cut -d. -f3)
