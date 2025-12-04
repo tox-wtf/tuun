@@ -18,7 +18,7 @@ make || die "Build failed"
 
 # Get old semver
 old_tag=$(git describe --tags --abbrev=0 @^)
-old_tag_major=$(echo "${old_tag#v}" | cut -d. -f1)
+old_tag_major=$(echo "$old_tag" | cut -d. -f1)
 old_tag_minor=$(echo "$old_tag" | cut -d. -f2)
 old_tag_patch=$(echo "$old_tag" | cut -d. -f3)
 
@@ -43,7 +43,7 @@ new_tag="$new_tag_major.$new_tag_minor.$new_tag_patch"
 
 # Update Cargo version
 old_sum=$(sha256sum Cargo.toml)
-sed -i "s|version = \"${old_tag#v}\"|version = \"$new_tag\"|" Cargo.toml
+sed -i "s|version = \"$old_tag\"|version = \"$new_tag\"|" Cargo.toml
 new_sum=$(sha256sum Cargo.toml)
 
 if [[ "$old_sum" == "$new_sum" ]]; then
