@@ -194,14 +194,14 @@ impl Track {
         if let Some(tag) = tag {
             let artist_url = tag.frames().find_map(|f| match f.content() {
                 | Content::ExtendedLink(l) if l.description.eq_ignore_ascii_case("artist homepage") => {
-                    debug!("Found under artist homepage");
                     Some(l.link.clone())
                 }
+                | _ if f.id() == "WOAR" => f.content().link().map(ToString::to_string), // preferred
                 | _ => None,
             });
 
             if artist_url.is_none() {
-                warn!("Couldn't find artist_url in extended link frames");
+                warn!("Couldn't find artist_url in any link frames");
             }
 
             return artist_url;
@@ -247,6 +247,7 @@ impl Track {
                 | Content::ExtendedText(t) if t.description == "srcurl" => {
                     Some(strip_null(&t.value))
                 },
+                | _ if f.id() == "WOAS" => f.content().link().map(ToString::to_string), // preferred
                 | _ => None,
             });
 
