@@ -7,6 +7,23 @@
 > Major ones are prefixed with **[!!]**.
 
 
+## 5.9.1 - 2025-12-06 23:07:47 -0600
+
+### Features
+
+ - Support WOAR and WOAS id3 frames
+
+### Fixes
+
+ - Use porcelain for git status in release script
+
+### Chores
+
+ - Update dependencies
+ - Update dependencies
+ - Remove tag migration logic in release script
+
+
 ## 5.9.0 - 2025-11-23 22:03:57 -0600
 
 ### Features
