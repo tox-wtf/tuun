@@ -151,6 +151,11 @@ impl Track {
         Ok(PathBuf::from(filename))
     }
 
+    #[instrument(skip(tag))]
+    pub fn get_organization(tag: &Tag) -> Option<String> {
+        tag.get("TPUB").map(|t| t.content().to_string())
+    }
+
     #[instrument(skip(data, tag))]
     pub fn get_arturl(data: &serde_json::Map<String, Value>, tag: Option<&Tag>) -> Option<String> {
         debug!("Attempting to get cover art URL");
@@ -277,6 +282,22 @@ impl Track {
             .to_string()
     }
 
+    #[instrument(skip(self))]
+    pub async fn read_id3_tag(&self) -> Option<Tag> {
+        let mut filepath: Option<PathBuf> = None;
+        for _ in 0..4 {
+            if let Ok(path) = self.query_filepath().await {
+                filepath = Some(path);
+            }
+        }
+
+        if filepath.as_ref().is_none_or(|f| f.extension().is_some_and(|e| !e.eq_ignore_ascii_case("mp3"))) {
+            return None
+        }
+
+        Tag::read_from_path(filepath?).ok()
+    }
+
     #[instrument(level = "debug", skip(self, metadata))]
     pub async fn update_metadata(&mut self, metadata: &Value) -> Result<()> {
         let Some(data) = metadata.get("data").and_then(|d| d.as_object()) else {
@@ -303,20 +324,7 @@ impl Track {
             warn!("Couldn't query filepath; expect inaccurate metadata");
         }
 
-        let tag = if let Some(f) = filepath
-            && let Some(ext) = f.extension()
-            && ext.eq_ignore_ascii_case("mp3")
-        {
-            match Tag::read_from_path(&f) {
-                | Ok(t) => Some(t),
-                | Err(e) => {
-                    error!("Couldn't read tag from path '{}': {e}", f.display());
-                    None
-                },
-            }
-        } else {
-            None
-        };
+        let tag = self.read_id3_tag().await;
 
         self.title = data
             .get("title")

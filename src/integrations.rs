@@ -195,7 +195,7 @@ pub async fn discord_rpc(track: Track, now_ago: Duration) -> Result<()> {
             connect_discord_rpc_client().await;
         }
 
-        let payload = create_rpc_payload(&track, now_ago);
+        let payload = create_rpc_payload(&track, now_ago).await;
         debug!("Setting Discord Rich Presence for {track:#?}");
 
         if let Err(e) = client.set_activity(payload) {
@@ -205,7 +205,7 @@ pub async fn discord_rpc(track: Track, now_ago: Duration) -> Result<()> {
             connect_discord_rpc_client().await;
             client = RPC_CLIENT.lock().await;
 
-            let payload = create_rpc_payload(&track, now_ago);
+            let payload = create_rpc_payload(&track, now_ago).await;
             if let Err(e) = client.set_activity(payload) {
                 error!("Failed to set activity after reconnect: {e:#}");
             }
@@ -216,13 +216,31 @@ pub async fn discord_rpc(track: Track, now_ago: Duration) -> Result<()> {
     .await?
 }
 
+/// Returns `(small_text, small_image, small_url)`
+#[allow(clippy::unwrap_used)]
+async fn construct_small_assets(track: &Track) -> (String, String, String) {
+    let tag = track.read_id3_tag().await;
+
+    if tag.is_none() || track.artist_pfp.is_none() {
+        return (CONFIG.discord.small_text.clone(), CONFIG.discord.small_image.clone(), CONFIG.discord.small_url.clone())
+    }
+
+    let tag = tag.unwrap();
+    let pfp = track.artist_pfp.clone().unwrap();
+    let url = track.artist_url.clone().unwrap_or_else(|| CONFIG.discord.small_url.clone());
+
+    if let Some(org) = Track::get_organization(&tag) {
+        return (org, pfp, url);
+    }
+
+    (track.get_primary_artist(), pfp, url)
+}
+
 #[instrument(skip(track))]
-fn create_rpc_payload(track: &Track, now_ago: Duration) -> Activity<'_> {
+async fn create_rpc_payload(track: &Track, now_ago: Duration) -> Activity<'_> {
     debug!("Encoded arturl is 'track.arturl'");
 
-    let small_image = track.artist_pfp.as_ref().unwrap_or(&CONFIG.discord.small_image);
-    let small_text = track.get_primary_artist();
-    let small_url = track.artist_url.as_deref().unwrap_or("https://github.com/tox-wtf/tuun");
+    let (small_text, small_image, small_url) = construct_small_assets(track).await;
 
     let assets = activity::Assets::new()
         .large_image(&track.arturl)
