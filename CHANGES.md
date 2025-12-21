@@ -7,6 +7,22 @@
 > Major ones are prefixed with **[!!]**.
 
 
+## 5.9.2 - 2025-12-20 21:23:38 -0600
+
+### Features
+
+ - Rework small assets for discord integration
+
+### Chores
+
+ - Update dependencies
+ - Update dependencies
+
+### Docs
+
+ - Update todos
+
+
 ## 5.9.1 - 2025-12-06 23:07:47 -0600
 
 ### Features
