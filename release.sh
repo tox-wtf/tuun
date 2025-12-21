@@ -43,7 +43,7 @@ new_tag="$new_tag_major.$new_tag_minor.$new_tag_patch"
 
 # Update Cargo version
 old_sum=$(sha256sum Cargo.toml)
-sed -i "s|version = \"$old_tag\"|version = \"$new_tag\"|" Cargo.toml
+sed -i "s|^version = \".*$|version = \"$new_tag\"|" Cargo.toml
 new_sum=$(sha256sum Cargo.toml)
 
 if [[ "$old_sum" == "$new_sum" ]]; then
@@ -185,4 +185,11 @@ git commit -m "chore(bump): $new_tag" -m "$changelog_entry"
 
 git tag "$new_tag"
 git push origin "$new_tag"
+git push
+
+# Set dev version
+sed -i "s|^version = \".*$|version = \"$new_tag-dev\"|" Cargo.toml
+make
+git add Cargo.{toml,lock} CHANGES.md
+git commit -m "chore(bump): set dev version"
 git push
