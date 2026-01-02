@@ -7,6 +7,19 @@
 > Major ones are prefixed with **[!!]**.
 
 
+## 5.9.3 - 2026-01-02 14:27:13 -0600
+
+### Chores
+
+ - Update dependencies
+ - Tweak release script for dev
+ - Set dev version
+
+### Docs
+
+ - Update todos
+
+
 ## 5.9.2 - 2025-12-20 21:23:38 -0600
 
 ### Features
