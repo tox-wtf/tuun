@@ -110,7 +110,7 @@ pub async fn connect() -> Result<()> {
     Ok(())
 }
 
-#[instrument(level = "debug")]
+#[instrument(skip(command), level = "debug")]
 pub async fn send_command(command: &str) -> Result<Value> {
     let stream = UnixStream::connect(SOCK_PATH).await?;
     let (reader, mut writer) = stream.into_split();
