@@ -291,6 +291,7 @@ impl Track {
         for _ in 0..4 {
             if let Ok(path) = self.query_filepath().await {
                 filepath = Some(path);
+                break;
             }
         }
 
@@ -320,6 +321,7 @@ impl Track {
         for _ in 0..4 {
             if let Ok(path) = self.query_filepath().await {
                 filepath = Some(path);
+                break;
             }
         }
 
