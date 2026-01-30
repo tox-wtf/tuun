@@ -226,8 +226,9 @@ async fn create_rpc_payload(track: &Track, now_ago: Duration) -> Activity<'_> {
         .small_url(small_url);
     debug!("Created rich presence activity assets");
 
-    let now = SystemTime::now();
-    let start = now
+    // I don't see us hitting this, and we'd panic anyway
+    #[allow(clippy::unchecked_time_subtraction)]
+    let start = SystemTime::now()
         .duration_since(UNIX_EPOCH)
         .expect("Grandfather paradox or something idk")
         - now_ago;
