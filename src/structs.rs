@@ -43,31 +43,31 @@ use crate::{
 
 #[derive(Debug, Clone)]
 pub struct Track {
-    pub arturl:   String,
+    pub arturl:     String,
     pub artist_url: Option<String>,
     pub artist_pfp: Option<String>,
-    pub srcurl:   Option<String>,
-    pub title:    String,
-    pub artist:   String,
-    pub album:    String,
-    pub date:     String,
-    pub progress: f64,
-    pub duration: f64,
+    pub srcurl:     Option<String>,
+    pub title:      String,
+    pub artist:     String,
+    pub album:      String,
+    pub date:       String,
+    pub progress:   f64,
+    pub duration:   f64,
 }
 
 impl Default for Track {
     fn default() -> Self {
         Self {
-            arturl:   String::new(),
-            artist_url:   None,
-            artist_pfp:   None,
-            srcurl:   None,
-            title:    String::new(),
-            artist:   String::new(),
-            album:    String::new(),
-            date:     String::new(),
-            progress: 0.0,
-            duration: 1000.,
+            arturl:     String::new(),
+            artist_url: None,
+            artist_pfp: None,
+            srcurl:     None,
+            title:      String::new(),
+            artist:     String::new(),
+            album:      String::new(),
+            date:       String::new(),
+            progress:   0.0,
+            duration:   1000.,
         }
     }
 }
@@ -172,16 +172,16 @@ impl Track {
                 | Content::ExtendedLink(l) if l.description.eq_ignore_ascii_case("front cover") => {
                     debug!("Found under front cover");
                     Some(l.link.clone())
-                }
+                },
                 | Content::ExtendedLink(l) if l.description.eq_ignore_ascii_case("cover") => {
                     debug!("Found under cover");
                     Some(l.link.clone())
-                }
+                },
                 | Content::ExtendedText(t) if t.description == "arturl" => {
                     debug!("Found under deprecated extended text 'arturl'");
                     warn!("Deprecated metadata format for cover art URL");
                     Some(strip_null(&t.value))
-                }
+                },
                 | _ => None,
             });
 
@@ -224,10 +224,12 @@ impl Track {
 
         if let Some(tag) = tag {
             let artist_pfp = tag.frames().find_map(|f| match f.content() {
-                | Content::ExtendedLink(l) if l.description.eq_ignore_ascii_case("artist picture") => {
+                | Content::ExtendedLink(l)
+                    if l.description.eq_ignore_ascii_case("artist picture") =>
+                {
                     debug!("Found under artist picture");
                     Some(l.link.clone())
-                }
+                },
                 | _ => None,
             });
 
@@ -240,7 +242,6 @@ impl Track {
 
         None
     }
-
 
     #[instrument(skip(data, tag))]
     pub fn get_srcurl(data: &serde_json::Map<String, Value>, tag: Option<&Tag>) -> Option<String> {
@@ -295,7 +296,10 @@ impl Track {
             }
         }
 
-        if filepath.as_ref().is_none_or(|f| f.extension().is_some_and(|e| !e.eq_ignore_ascii_case("mp3"))) {
+        if filepath.as_ref().is_none_or(|f| {
+            f.extension()
+                .is_some_and(|e| !e.eq_ignore_ascii_case("mp3"))
+        }) {
             return None
         }
 

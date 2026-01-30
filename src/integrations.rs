@@ -218,12 +218,19 @@ async fn construct_small_assets(track: &Track) -> (String, String, String) {
     let tag = track.read_id3_tag().await;
 
     if tag.is_none() || track.artist_pfp.is_none() {
-        return (CONFIG.discord.small_text.clone(), CONFIG.discord.small_image.clone(), CONFIG.discord.small_url.clone())
+        return (
+            CONFIG.discord.small_text.clone(),
+            CONFIG.discord.small_image.clone(),
+            CONFIG.discord.small_url.clone(),
+        )
     }
 
     let tag = tag.unwrap();
     let pfp = track.artist_pfp.clone().unwrap();
-    let url = track.artist_url.clone().unwrap_or_else(|| CONFIG.discord.small_url.clone());
+    let url = track
+        .artist_url
+        .clone()
+        .unwrap_or_else(|| CONFIG.discord.small_url.clone());
 
     if let Some(org) = Track::get_organization(&tag) {
         return (org, pfp, url);
