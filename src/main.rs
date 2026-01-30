@@ -108,7 +108,7 @@ async fn main() -> ! {
     // Authenticate LastFM scrobbler in the background if it's used
     if CONFIG.lastfm.used {
         tokio::spawn(async {
-            if let Err(e) = integrations::authenticate_lastfm_scrobbler().await {
+            if let Err(e) = integrations::auth_lastfm_scrobbler().await {
                 error!("Error during scrobbler authentication: {e:#?}");
             } else {
                 info!("Authenticated with lastfm");

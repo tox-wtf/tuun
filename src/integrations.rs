@@ -45,38 +45,8 @@ use crate::{
 };
 
 #[instrument]
-pub async fn authenticate_lastfm_scrobbler() -> Result<()> {
-    let mut scrobbler_lock = SCROBBLER.lock().await;
-
-    if scrobbler_lock.is_none() {
-        info!("Authenticating lastfm scrobbler...");
-        let lfm = LastFM::new();
-
-        if lfm.apikey.is_empty()
-            || lfm.secret.is_empty()
-            || lfm.username.is_empty()
-            || lfm.password.is_empty()
-        {
-            warn!("Cowardly refusing to authenticate without credentials");
-            bail!("Cowardly refusing to authenticate without credentials");
-        }
-
-        let mut scrobbler = Scrobbler::new(lfm.apikey, lfm.secret);
-        scrobbler.authenticate_with_password(lfm.username, lfm.password)?;
-
-        *scrobbler_lock = Some(Arc::new(scrobbler));
-        drop(scrobbler_lock);
-        info!("Authenticated lastfm scrobbler");
-    } else {
-        debug!("Not authenticating as scrobbler_lock is Some");
-    }
-
-    Ok(())
-}
-
-#[instrument]
 /// Version of [`authenticate_lastfm_scrobbler()`] that doesn't check if the lock is taken
-pub async fn authenticate_lastfm_scrobbler_unchecked() -> Result<()> {
+pub async fn auth_lastfm_scrobbler() -> Result<()> {
     let mut scrobbler_lock = SCROBBLER.lock().await;
 
     info!("Authenticating lastfm scrobbler...");
@@ -99,12 +69,12 @@ pub async fn authenticate_lastfm_scrobbler_unchecked() -> Result<()> {
 
 #[instrument(skip(track))]
 pub async fn lastfm_now_playing(track: Track) -> Result<()> {
-    let scrobbler_lock = SCROBBLER.lock().await;
-
     for att in 1..=3 {
+        let scrobbler_lock = SCROBBLER.lock().await;
         if scrobbler_lock.is_none() {
             warn!("Trying to initialize scrobbler");
-            if let Err(e) = authenticate_lastfm_scrobbler_unchecked().await {
+            drop(scrobbler_lock); // drop so we don't deadlock in auth
+            if let Err(e) = auth_lastfm_scrobbler().await {
                 error!("Failed to initialize scrobbler: {e}");
             }
         } else {
@@ -112,6 +82,7 @@ pub async fn lastfm_now_playing(track: Track) -> Result<()> {
             break;
         }
     }
+    let scrobbler_lock = SCROBBLER.lock().await;
 
     let Some(scrobbler) = &*scrobbler_lock else {
         error!("Scrobbler is not initialized");
@@ -130,12 +101,12 @@ pub async fn lastfm_now_playing(track: Track) -> Result<()> {
 
 #[instrument(skip(track))]
 pub async fn lastfm_scrobble(track: Track) -> Result<()> {
-    let scrobbler_lock = SCROBBLER.lock().await;
-
     for att in 1..=3 {
+        let scrobbler_lock = SCROBBLER.lock().await;
         if scrobbler_lock.is_none() {
             warn!("Trying to initialize scrobbler");
-            if let Err(e) = authenticate_lastfm_scrobbler_unchecked().await {
+            drop(scrobbler_lock); // drop so we don't deadlock in auth
+            if let Err(e) = auth_lastfm_scrobbler().await {
                 error!("Failed to initialize scrobbler: {e}");
             }
         } else {
@@ -143,6 +114,7 @@ pub async fn lastfm_scrobble(track: Track) -> Result<()> {
             break;
         }
     }
+    let scrobbler_lock = SCROBBLER.lock().await;
 
     let Some(scrobbler) = &*scrobbler_lock else {
         error!("Scrobbler is not initialized");
