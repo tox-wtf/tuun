@@ -188,7 +188,7 @@ git push origin "$new_tag"
 git push
 
 # Set dev version
-sed -i "s|^version = \".*$|version = \"$new_tag-dev\"|" Cargo.toml
+sed -i "s|^version = \".*$|version = \"$new_tag+dev\"|" Cargo.toml
 make
 git add Cargo.{toml,lock} CHANGES.md
 git commit -m "chore(bump): set dev version"
