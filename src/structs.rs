@@ -72,7 +72,7 @@ impl Default for Track {
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, Default, PartialEq, Eq)]
 pub struct LastFM<'lfm> {
     pub apikey:   &'lfm str,
     pub secret:   &'lfm str,
@@ -89,6 +89,9 @@ impl LastFM<'_> {
             password: &CONFIG.lastfm.password,
         }
     }
+
+    #[inline]
+    pub fn is_default(&self) -> bool { *self == LastFM::default() }
 }
 
 pub fn strip_null(s: &str) -> String { s.replace('\0', "") }

@@ -82,11 +82,7 @@ pub async fn authenticate_lastfm_scrobbler_unchecked() -> Result<()> {
     info!("Authenticating lastfm scrobbler...");
     let lfm = LastFM::new();
 
-    if lfm.apikey.is_empty()
-        || lfm.secret.is_empty()
-        || lfm.username.is_empty()
-        || lfm.password.is_empty()
-    {
+    if lfm.is_default() {
         warn!("Cowardly refusing to authenticate without credentials");
         bail!("Cowardly refusing to authenticate without credentials");
     }
