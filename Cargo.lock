@@ -928,7 +928,7 @@ dependencies = [
 
 [[package]]
 name = "tuun"
-version = "5.9.3-dev"
+version = "5.9.4"
 dependencies = [
  "anyhow",
  "clap",

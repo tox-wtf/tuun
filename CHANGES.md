@@ -7,6 +7,25 @@
 > Major ones are prefixed with **[!!]**.
 
 
+## 5.9.4 - 2026-01-30 15:39:24 -0600
+
+### Fixes
+
+ - Correct dev version delimiter
+ - Address a clippy lint
+ - Improve lastfm auth
+ - Break out of query_filepath loop
+ - Impl and use Default for LastFM
+
+### Chores
+
+ - Update dependencies
+ - Fmt
+ - Cleanup logs
+ - Update dependencies
+ - Set dev version
+
+
 ## 5.9.3 - 2026-01-02 14:27:13 -0600
 
 ### Chores
