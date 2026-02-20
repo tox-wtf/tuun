@@ -30,7 +30,7 @@ rustfm-scrobble = { git = "https://github.com/tox-wtf/rustfm-scrobble" }
 serde = { version = "1.0", features = ["derive"] }
 serde_json = "1.0"
 tokio = { version = "1.43", features = ["full"] }
-toml = "0.9"
+toml = "1"
 tracing = "0.1"
 tracing-appender = "0.2"
 tracing-subscriber = { version = "0.3", features = ["env-filter"] }
