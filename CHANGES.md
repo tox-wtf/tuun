@@ -7,6 +7,18 @@
 > Major ones are prefixed with **[!!]**.
 
 
+## 5.9.5 - 2026-02-20 00:25:22 -0600
+
+### Chores
+
+ - Update dependencies
+ - Set dev version
+
+### Docs
+
+ - Tweak features in readme
+
+
 ## 5.9.4 - 2026-01-30 15:39:24 -0600
 
 ### Fixes
