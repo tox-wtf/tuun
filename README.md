@@ -6,12 +6,11 @@ on most Linux distros with some finagling. This is its fifth iteration,
 featuring async!
 
 ## Features
-Tuun currently supports at least the following fun and fancy features:
+Tuun currently supports at least the following fun features:
 - Discord Rich Presence
-- LastFM scrobbling
+- LastFM scrobbling and now playing
 - Playlists
-- Playlist generation
-- Queues
+- Queueing
 - Configuration
 
 ## Installation
