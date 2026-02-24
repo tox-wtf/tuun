@@ -91,9 +91,9 @@ pub async fn lastfm_now_playing(track: Track) -> Result<()> {
 
     let scrobbler = scrobbler.clone();
 
-    let track = Scrobble::new(&urlencoding::encode(&track.get_primary_artist()),
-                              &urlencoding::encode(&track.title),
-                              &urlencoding::encode(&track.album));
+    let track = Scrobble::new(&track.get_primary_artist(),
+                              &track.title,
+                              &track.album);
 
     tokio::task::spawn_blocking(move || scrobbler.now_playing(&track)).await??;
     drop(scrobbler_lock);
