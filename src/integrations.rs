@@ -220,13 +220,27 @@ async fn create_rpc_payload(track: &Track, now_ago: Duration) -> Activity<'_> {
 
     let (small_text, small_image, small_url) = construct_small_assets(track).await;
 
-    let assets = activity::Assets::new()
-        .large_image(&track.arturl)
-        .large_text(&track.album)
-        .large_url(&track.arturl)
-        .small_image(small_image)
-        .small_text(small_text)
-        .small_url(small_url);
+    let assets = match track.album_url.as_deref() {
+        Some(album_url) => {
+            activity::Assets::new()
+                .large_image(&track.arturl)
+                .large_text(&track.album)
+                .large_url(album_url)
+                .small_image(small_image)
+                .small_text(small_text)
+                .small_url(small_url)
+        },
+        None => {
+            activity::Assets::new()
+                .large_image(&track.arturl)
+                .large_text(&track.album)
+                .large_url(&track.arturl)
+                .small_image(small_image)
+                .small_text(small_text)
+                .small_url(small_url)
+        }
+    };
+
     debug!("Created rich presence activity assets");
 
     // I don't see us hitting this, and we'd panic anyway
@@ -242,33 +256,37 @@ async fn create_rpc_payload(track: &Track, now_ago: Duration) -> Activity<'_> {
         .start(start.as_millis() as i64)
         .end(end.as_millis() as i64);
 
-    let payload = if let (Some(artist_url), Some(srcurl)) = (&track.artist_url, &track.srcurl) {
-        activity::Activity::new()
-            .state(&track.artist)
-            .state_url(artist_url)
-            .details(&track.title)
-            .details_url(srcurl)
-            .assets(assets)
-            .activity_type(activity::ActivityType::Listening)
-            .status_display_type(StatusDisplayType::Details)
-            .timestamps(timestamp)
-    } else if let Some(srcurl) = &track.srcurl {
-        activity::Activity::new()
-            .state(&track.artist)
-            .details(&track.title)
-            .details_url(srcurl)
-            .assets(assets)
-            .activity_type(activity::ActivityType::Listening)
-            .status_display_type(StatusDisplayType::Details)
-            .timestamps(timestamp)
-    } else {
-        activity::Activity::new()
-            .state(&track.artist)
-            .details(&track.title)
-            .assets(assets)
-            .activity_type(activity::ActivityType::Listening)
-            .status_display_type(StatusDisplayType::Details)
-            .timestamps(timestamp)
+    let payload = match (&track.artist_url, &track.srcurl) {
+        (Some(artist_url), Some(srcurl)) => {
+            activity::Activity::new()
+                .state(&track.artist)
+                .state_url(artist_url)
+                .details(&track.title)
+                .details_url(srcurl)
+                .assets(assets)
+                .activity_type(activity::ActivityType::Listening)
+                .status_display_type(StatusDisplayType::Details)
+                .timestamps(timestamp)
+        },
+        (None, Some(srcurl)) => {
+            activity::Activity::new()
+                .state(&track.artist)
+                .details(&track.title)
+                .details_url(srcurl)
+                .assets(assets)
+                .activity_type(activity::ActivityType::Listening)
+                .status_display_type(StatusDisplayType::Details)
+                .timestamps(timestamp)
+        },
+        _ => {
+            activity::Activity::new()
+                .state(&track.artist)
+                .details(&track.title)
+                .assets(assets)
+                .activity_type(activity::ActivityType::Listening)
+                .status_display_type(StatusDisplayType::Details)
+                .timestamps(timestamp)
+        }
     };
 
     debug!("Created rich presence activity payload");

@@ -44,6 +44,7 @@ use crate::{
 #[derive(Debug, Clone)]
 pub struct Track {
     pub arturl:     String,
+    pub album_url:  Option<String>,
     pub artist_url: Option<String>,
     pub artist_pfp: Option<String>,
     pub srcurl:     Option<String>,
@@ -59,6 +60,7 @@ impl Default for Track {
     fn default() -> Self {
         Self {
             arturl:     String::new(),
+            album_url:  None,
             artist_url: None,
             artist_pfp: None,
             srcurl:     None,
@@ -219,6 +221,29 @@ impl Track {
     }
 
     #[instrument(skip(tag))]
+    pub fn get_albumurl(tag: Option<&Tag>) -> Option<String> {
+        debug!("Attempting to get album URL");
+
+        if let Some(tag) = tag {
+            let album_url = tag.frames().find_map(|f| match f.content() {
+                | Content::ExtendedLink(l) if l.description.eq_ignore_ascii_case("album homepage") => {
+                    Some(l.link.clone())
+                }
+                | _ if f.id() == "WOAS" => f.content().link().map(ToString::to_string), // preferred
+                | _ => None,
+            });
+
+            if album_url.is_none() {
+                warn!("Couldn't find album_url in any link frames");
+            }
+
+            return album_url;
+        }
+
+        None
+    }
+
+    #[instrument(skip(tag))]
     pub fn get_artistpfp(tag: Option<&Tag>) -> Option<String> {
         debug!("Attempting to get primary artist profile picture");
 
@@ -250,24 +275,26 @@ impl Track {
             return Some(url.to_string());
         }
 
-        if let Some(tag) = tag {
-            let srcurl = tag.frames().find_map(|f| match f.content() {
-                | Content::ExtendedLink(l) if l.description == "Source" => Some(l.link.clone()),
-                | Content::ExtendedText(t) if t.description == "srcurl" => {
-                    Some(strip_null(&t.value))
-                },
-                | _ if f.id() == "WOAS" => f.content().link().map(ToString::to_string), // preferred
-                | _ => None,
-            });
-
-            if srcurl.is_none() {
-                warn!("Couldn't find srcurl in extended text or cover in extended link frames");
-            }
-
-            return srcurl;
+        let tag = tag?;
+        if let Some(f) = tag.frames().find(|f| f.id() == "WOAF") {
+            return f.content().link().map(ToString::to_string); // preferred
         }
 
-        None
+        // fallbacks
+        let srcurl = tag.frames().find_map(|f| match f.content() {
+            | Content::ExtendedLink(l) if l.description == "Source" => Some(l.link.clone()),
+            | Content::ExtendedText(t) if t.description == "srcurl" => {
+                Some(strip_null(&t.value))
+            },
+            | _ if f.id() == "WOAS" => f.content().link().map(ToString::to_string),
+            | _ => None,
+        });
+
+        if srcurl.is_none() {
+            warn!("Couldn't find srcurl in extended text or cover in extended link frames");
+        }
+
+        srcurl
     }
 
     #[instrument(skip(data, tag))]
@@ -357,6 +384,7 @@ impl Track {
 
         self.srcurl = Self::get_srcurl(&data, tag.as_ref()).map(|u| urlencode(&u));
         self.artist_url = Self::get_artisturl(tag.as_ref()).map(|u| urlencode(&u));
+        self.album_url = Self::get_albumurl(tag.as_ref()).map(|u| urlencode(&u));
         self.artist_pfp = Self::get_artistpfp(tag.as_ref()).map(|u| urlencode(&u));
 
         debug!("Attempting to find duration");
