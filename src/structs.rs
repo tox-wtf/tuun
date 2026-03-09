@@ -384,7 +384,7 @@ impl Track {
 
         self.srcurl = Self::get_srcurl(&data, tag.as_ref()).map(|u| urlencode(&u));
         self.artist_url = Self::get_artisturl(tag.as_ref()).map(|u| urlencode(&u));
-        self.album_url = Self::get_albumurl(tag.as_ref()).map(|u| urlencode(&u));
+        self.album_url = Self::get_albumurl(tag.as_ref()); // should not be urlencoded
         self.artist_pfp = Self::get_artistpfp(tag.as_ref()).map(|u| urlencode(&u));
 
         debug!("Attempting to find duration");
