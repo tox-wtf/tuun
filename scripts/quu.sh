@@ -8,7 +8,7 @@ SONG_DIR=${SONG_DIR:-${XDG_MUSIC_DIR:-"$HOME/Music"}}
 
 # And ensure it exists
 if [ ! -d "$SONG_DIR" ]; then
-    echo "Music directory not found: $SONG_DIR"
+    echo "Music directory not found: $SONG_DIR" >&2
     exit 1
 fi
 
@@ -20,7 +20,7 @@ mkdir -p /tmp/tuun
 # 1. Prepend the song directory
 # 2. Change \ to \\ to appease mpv
 # 3. Change " to \" to appease mpv
-find "$SONG_DIR" -maxdepth 1 -mindepth 1 -type f \
+find "$SONG_DIR" -mindepth 1 -type f \
     \( -iname '*.mp3' -o -iname '*.opus' -o -iname '*.wav' -o -iname '*.m4a' -o -iname '*.ogg' -o -iname '*.flac' \) |
     sed 's,.*/,,'       | # strip full path
     shuf                | # shuffle
@@ -30,6 +30,8 @@ find "$SONG_DIR" -maxdepth 1 -mindepth 1 -type f \
         -e 's,",\\",g'          \
         > /tmp/tuun/_quu.tpl
 
+# Finalize the queue if anything was actually selected; otherwise remove the
+# temporary queue
 if [ -s /tmp/tuun/_quu.tpl ]; then
     mv /tmp/tuun/_quu.tpl /tmp/tuun/quu.tpl
 else
