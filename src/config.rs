@@ -121,6 +121,7 @@ impl Default for GeneralConfig {
                 "Go Robot, Go!".into(),
                 "What Price, Wonderland?".into(),
                 "Hey, Revolution!".into(),
+                "Hey, ily!".into(),
                 "Muira,".into(),
             ],
             shuffle:                 true,
