@@ -1,6 +1,6 @@
 [package]
 name = "tuun"
-version = "5.9.5+dev"
+version = "5.10.0"
 edition = "2024"
 authors = [ "tox" ]
 description = "A simple music player using MPV as a backend"

@@ -7,6 +7,29 @@
 > Major ones are prefixed with **[!!]**.
 
 
+## 5.10.0 - 2026-04-10 18:20:55 -0500
+
+### Features
+
+ - Minor improvements to quu.sh
+ - **[!]** Tweak fzm script
+ - **[!]** Track album urls
+
+### Fixes
+
+ - Valid bash syntax
+ - Album urls should not be urlencoded
+ - Revert urlencoding oops!
+ - Urlencode scrobbles
+
+### Chores
+
+ - Update dependencies
+ - Update dependencies
+ - Update dependencies
+ - Set dev version
+
+
 ## 5.9.5 - 2026-02-20 00:25:22 -0600
 
 ### Chores
