@@ -15,12 +15,14 @@ Tuun currently supports at least the following fun features:
 
 ## Installation
 **Incomplete List of Dependencies**
-- rust      -> Build
-- mpv       -> Runtime. Used to play and control music and display album art.
-- fzf       -> Optional. Used in `./scripts/quu.sh`.
-- alacritty -> Optional. Used in `./scripts/quu.sh`.
+| Package   | Type                  | Description                               |
+| --------- | --------------------- | ----------------------------------------- |
+| rust      | build                 |                                           |
+| mpv       | runtime               | backend                                   |
+| fzf       | runtime (optional)    | used in [scripts/quu.sh](scripts/quu.sh)  |
+| alacritty | runtime (optional)    | used in [scripts/quu.sh](scripts/quu.sh)  |
 
-I've decided to use Makefiles to simplify stuff. This should be all it takes:
+To build and install tuun, run the following commands:
 ```bash
 ./configure
 make
@@ -28,20 +30,22 @@ sudo make install
 ```
 
 ## Usage
-For basic usage, just run `tuun`. For more advanced usage, check out the scripts
-in `./scripts`.
+For basic usage, just run `tuun`. For more advanced usage, check out the
+[scripts](scripts).
 
-Thanks to mpv's socket, you can make hotkeys to control pretty much every aspect
-of tuun, which you can pair with `./scripts/mpv.sh`. `./scripts/quu.sh` works
-with `./scripts/fzm` to make queueing songs nicer. `./scripts/tuun.sh` wraps
-launching and closing `tuun`. Note that `./scripts/mpv.sh` is not installed by
+Thanks to mpv's socket, you can make hotkeys to control pretty much every
+aspect of tuun, which you can pair with [scripts/mpv.sh](scripts/mpv.sh).
+[scripts/quu.sh](scripts/quu.sh) works with [scripts/fzm](scripts/fzm) to make
+queueing songs nicer. [scripts/tuun.sh](scripts/tuun.sh) wraps launching and
+closing `tuun`. Note that [scripts/mpv.sh](scripts/mpv.sh) is not installed by
 the Makefile. That one's up to you to place where you'd like and configure.
 
 You may also want to make keybinds and window class/title configurations for
 `tuun` and `quu` with your window manager.
 
 ## Uninstallation
-If for whatever reason you're not convinced (and you still have the sources):
+If you decide you hate `tuun` and want me dead (and you still have the
+sources):
 ```bash
 sudo make uninstall
 ```
