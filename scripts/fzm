@@ -4,11 +4,7 @@
 
 # Creating a window using the alacritty daemon is significantly faster, so it's
 # preferred, but a fallback also exists.
-if pgrep -f 'alacritty --daemon' >/dev/null 2>&1; then
-    ALACRITTY="alacritty msg create-window"
-else
-    ALACRITTY="alacritty"
-fi
+ALACRITTY="alacritty msg create-window || alacritty || echo 'Failed to launch alacritty' >&2"
 
 fifo=$(mktemp -u)
 infile=$(mktemp)
@@ -29,5 +25,5 @@ $ALACRITTY \
     $( [ -s "$infile" ] && echo "< $infile") > $fifo
     "
 
-cat "$fifo"
-rm "$fifo"
+tac "$fifo"
+rm -f "$fifo"
