@@ -280,7 +280,7 @@ impl Track {
             return f.content().link().map(ToString::to_string); // preferred
         }
 
-        // fallbacks
+        // fallbacks (backwards compatability)
         let srcurl = tag.frames().find_map(|f| match f.content() {
             | Content::ExtendedLink(l) if l.description == "Source" => Some(l.link.clone()),
             | Content::ExtendedText(t) if t.description == "srcurl" => {
