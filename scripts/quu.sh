@@ -20,11 +20,15 @@ mkdir -p /tmp/tuun
 # 1. Prepend the song directory
 # 2. Change \ to \\ to appease mpv
 # 3. Change " to \" to appease mpv
-find "$SONG_DIR" -mindepth 1 -type f \
-    \( -iname '*.mp3' -o -iname '*.opus' -o -iname '*.wav' -o -iname '*.m4a' -o -iname '*.ogg' -o -iname '*.flac' \) |
-    sed 's,.*/,,'       | # strip full path
-    shuf                | # shuffle
-    fzm                 | # write queue
+{
+    if command -v fd &>/dev/null; then
+        fd -tf -e mp3 -e opus -e wav -e m4a -e ogg -e flac --base-directory "$SONG_DIR"
+    else
+        find "$SONG_DIR" -mindepth 1 -type f \
+            \( -iname '*.mp3' -o -iname '*.opus' -o -iname '*.wav' -o -iname '*.m4a' -o -iname '*.ogg' -o -iname '*.flac' \) |
+                sed "s,$SONG_DIR/,,"
+    fi
+} | fzm |
     sed -e "s,^,$SONG_DIR/,"    \
         -e 's,\\,\\\\,g'        \
         -e 's,",\\",g'          \
