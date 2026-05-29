@@ -7,6 +7,33 @@
 > Major ones are prefixed with **[!!]**.
 
 
+## 5.11.0 - 2026-05-29 03:44:24 -0500
+
+### Features
+
+ - **[!]** External cover art support
+ - Minor refactor
+ - Prefer `fd` if available
+ - Clean up scripts
+
+### Fixes
+
+ - **[!]** Bash for launcher script
+
+### Chores
+
+ - Update dependencies
+ - Update dependencies
+ - Tweak default config
+ - Set dev version
+
+### Docs
+
+ - Cleanup
+ - More descriptive comment
+ - Clean up readme
+
+
 ## 5.10.0 - 2026-04-10 18:20:55 -0500
 
 ### Features
