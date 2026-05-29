@@ -350,16 +350,13 @@ pub async fn use_external_cover_art() -> Option<()> {
     let json = send_command(r#"{ "command": ["get_property", "track-list"] }"#).await.ok()?;
 
     let tracks = json.get("data").and_then(|j| j.as_array())?.clone();
-    let final_video_track = tracks.iter().rfind(|track| {
-        track.get("type").is_some_and(|j| j.as_str() == Some("video"))
-            && track
-                .get("title")
-                .is_some_and(|j| j.as_str().is_some_and(|s| s.eq_ignore_ascii_case("artist picture")))
-    })?;
+    let external_cover_art_track = tracks
+        .iter()
+        .find(|track| track.get("external-filename").is_some() && track.get("type").is_some_and(|j| j.as_str() == Some("video")))?;
 
     send_command(format!(
         r#"{{ "command": ["set_property", "vid", {}] }}"#,
-        final_video_track.get("id")?.as_u64()?
+        external_cover_art_track.get("id")?.as_u64()?
     ))
     .await
     .ok()?;
