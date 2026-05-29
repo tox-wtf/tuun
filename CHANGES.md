@@ -7,6 +7,19 @@
 > Major ones are prefixed with **[!!]**.
 
 
+## 5.11.1 - 2026-05-29 03:59:23 -0500
+
+### Fixes
+
+ - Better external cover art track detection
+
+### Chores
+
+ - Fmt
+ - Update rustfmt config
+ - Set dev version
+
+
 ## 5.11.0 - 2026-05-29 03:44:24 -0500
 
 ### Features
