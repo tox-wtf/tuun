@@ -7,19 +7,11 @@
 // https://users.rust-lang.org/t/serde-default-versus-impl-default/66773
 // https://serde.rs/container-attrs.html#default
 
-use std::{
-    env,
-    fs,
-    path::Path,
-};
+use std::path::Path;
+use std::{env, fs};
 
 use serde::Deserialize;
-use tracing::{
-    debug,
-    error,
-    info,
-    warn,
-};
+use tracing::{debug, error, info, warn};
 
 #[derive(Deserialize, Debug, Default)]
 #[serde(default)]
@@ -126,8 +118,7 @@ impl Default for GeneralConfig {
             ],
             shuffle:                 true,
             playlist:                "/tmp/tuun/all.tpl".to_owned(),
-            music_dir:               get_fallback_music_dir()
-                .expect("Couldn't retrieve fallback music directory"),
+            music_dir:               get_fallback_music_dir().expect("Couldn't retrieve fallback music directory"),
             recent_length:           350,
             mpv_socket_poll_timeout: 96,
             now_playing_delay:       2345,
@@ -137,9 +128,7 @@ impl Default for GeneralConfig {
 
 impl Config {
     pub fn load() -> Self {
-        let home_dir = homedir::my_home()
-            .expect("Couldn't find home directory")
-            .expect("Couldn't find home directory");
+        let home_dir = homedir::my_home().expect("Couldn't find home directory").expect("Couldn't find home directory");
         debug!("Detected home directory: '{}'", home_dir.display());
 
         let config_dir = get_fallback_config_dir().expect("Couldn't find config directory");
@@ -178,15 +167,9 @@ impl Config {
     fn create_default(config_path: &Path) {
         let datadir = option_env!("DATADIR").unwrap_or("/usr/share/data");
         let default_config_path = Path::new(datadir).join("default_config.toml");
-        info!(
-            "Copying default config from {} to {}",
-            default_config_path.display(),
-            config_path.display()
-        );
+        info!("Copying default config from {} to {}", default_config_path.display(), config_path.display());
 
-        let config_dir = config_path
-            .parent()
-            .expect("Config dir's parent should exist");
+        let config_dir = config_path.parent().expect("Config dir's parent should exist");
         if !config_dir.exists() {
             fs::create_dir_all(config_dir).expect("Failed to create config directory");
             info!("Created config directory at '{}'", config_dir.display());
@@ -209,9 +192,7 @@ fn get_fallback_config_dir() -> Option<String> {
         return Some(config_dir)
     }
 
-    if let Some(config_dir) =
-        env::home_dir().map(|p| p.join(".config").to_string_lossy().to_string())
-    {
+    if let Some(config_dir) = env::home_dir().map(|p| p.join(".config").to_string_lossy().to_string()) {
         return Some(config_dir)
     }
 
@@ -227,8 +208,7 @@ fn get_fallback_music_dir() -> Option<String> {
         return Some(music_dir)
     }
 
-    if let Some(music_dir) = env::home_dir().map(|p| p.join("Music").to_string_lossy().to_string())
-    {
+    if let Some(music_dir) = env::home_dir().map(|p| p.join("Music").to_string_lossy().to_string()) {
         return Some(music_dir)
     }
 

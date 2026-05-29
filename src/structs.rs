@@ -1,42 +1,18 @@
-use std::{
-    fmt,
-    io::{
-        self,
-        Write,
-    },
-    path::PathBuf,
-    sync::atomic::Ordering,
-    time::Duration,
-};
+use std::fmt;
+use std::io::{self, Write};
+use std::path::PathBuf;
+use std::sync::atomic::Ordering;
+use std::time::Duration;
 
 use anyhow::Result;
-use id3::{
-    Content,
-    Tag,
-    TagLike,
-};
+use id3::{Content, Tag, TagLike};
 use serde_json::Value;
-use tracing::{
-    debug,
-    error,
-    instrument,
-    trace,
-    warn,
-};
+use tracing::{debug, error, instrument, trace, warn};
 use urlencoding::encode;
 
-use crate::{
-    CONFIG,
-    config::ColorConfig,
-    integrations,
-    mpv::{
-        LOOPED,
-        MUTED,
-        VOLUME,
-        get_filepath,
-        send_command,
-    },
-};
+use crate::config::ColorConfig;
+use crate::mpv::{LOOPED, MUTED, VOLUME, get_filepath, send_command};
+use crate::{CONFIG, integrations};
 
 #[derive(Debug, Clone)]
 pub struct Track {
@@ -66,7 +42,7 @@ impl Default for Track {
             album:      String::new(),
             date:       String::new(),
             progress:   0.0,
-            duration:   1000.,
+            duration:   1000.0,
         }
     }
 }
@@ -96,14 +72,8 @@ impl LastFM<'_> {
 pub fn strip_null(s: &str) -> String { s.replace('\0', "") }
 
 pub fn urlencode(url: &str) -> String {
-    let (proto, rest_of_url) = url
-        .find("://")
-        .map_or(("", url), |index| (&url[..index + 3], &url[index + 3..]));
-    let encoded_rest = rest_of_url
-        .split('/')
-        .map(|part| encode(part).into_owned())
-        .collect::<Vec<_>>()
-        .join("/");
+    let (proto, rest_of_url) = url.find("://").map_or(("", url), |index| (&url[..index + 3], &url[index + 3..]));
+    let encoded_rest = rest_of_url.split('/').map(|part| encode(part).into_owned()).collect::<Vec<_>>().join("/");
     format!("{proto}{encoded_rest}")
 }
 
@@ -135,9 +105,7 @@ impl Track {
     // }
 
     #[instrument(skip(tag))]
-    pub fn get_organization(tag: &Tag) -> Option<String> {
-        tag.get("TPUB").map(|t| t.content().to_string())
-    }
+    pub fn get_organization(tag: &Tag) -> Option<String> { tag.get("TPUB").map(|t| t.content().to_string()) }
 
     #[instrument(skip(data, tag))]
     pub fn get_arturl(data: &serde_json::Map<String, Value>, tag: Option<&Tag>) -> Option<String> {
@@ -181,9 +149,7 @@ impl Track {
 
         if let Some(tag) = tag {
             let artist_url = tag.frames().find_map(|f| match f.content() {
-                | Content::ExtendedLink(l) if l.description.eq_ignore_ascii_case("artist homepage") => {
-                    Some(l.link.clone())
-                }
+                | Content::ExtendedLink(l) if l.description.eq_ignore_ascii_case("artist homepage") => Some(l.link.clone()),
                 | _ if f.id() == "WOAR" => f.content().link().map(ToString::to_string), // preferred
                 | _ => None,
             });
@@ -204,9 +170,7 @@ impl Track {
 
         if let Some(tag) = tag {
             let album_url = tag.frames().find_map(|f| match f.content() {
-                | Content::ExtendedLink(l) if l.description.eq_ignore_ascii_case("album homepage") => {
-                    Some(l.link.clone())
-                }
+                | Content::ExtendedLink(l) if l.description.eq_ignore_ascii_case("album homepage") => Some(l.link.clone()),
                 | _ if f.id() == "WOAS" => f.content().link().map(ToString::to_string), // preferred
                 | _ => None,
             });
@@ -227,9 +191,7 @@ impl Track {
 
         if let Some(tag) = tag {
             let artist_pfp = tag.frames().find_map(|f| match f.content() {
-                | Content::ExtendedLink(l)
-                    if l.description.eq_ignore_ascii_case("artist picture") =>
-                {
+                | Content::ExtendedLink(l) if l.description.eq_ignore_ascii_case("artist picture") => {
                     debug!("Found under artist picture");
                     Some(l.link.clone())
                 },
@@ -283,10 +245,7 @@ impl Track {
             }
         }
 
-        data.get("artist")
-            .and_then(|v| v.as_str())
-            .unwrap_or("<Unknown artist>")
-            .to_string()
+        data.get("artist").and_then(|v| v.as_str()).unwrap_or("<Unknown artist>").to_string()
     }
 
     #[instrument(skip(self))]
@@ -299,10 +258,7 @@ impl Track {
             }
         }
 
-        if filepath.as_ref().is_none_or(|f| {
-            f.extension()
-                .is_some_and(|e| !e.eq_ignore_ascii_case("mp3"))
-        }) {
+        if filepath.as_ref().is_none_or(|f| f.extension().is_some_and(|e| !e.eq_ignore_ascii_case("mp3"))) {
             return None
         }
 
@@ -319,10 +275,7 @@ impl Track {
             return Ok(());
         };
 
-        let data: serde_json::Map<String, Value> = data
-            .iter()
-            .map(|(k, v)| (k.to_lowercase(), v.clone()))
-            .collect();
+        let data: serde_json::Map<String, Value> = data.iter().map(|(k, v)| (k.to_lowercase(), v.clone())).collect();
 
         let mut filepath: Option<PathBuf> = None;
         for _ in 0..4 {
@@ -338,25 +291,12 @@ impl Track {
 
         let tag = self.read_id3_tag().await;
 
-        self.title = data
-            .get("title")
-            .and_then(|v| v.as_str())
-            .unwrap_or("<Unknown title>")
-            .to_string();
+        self.title = data.get("title").and_then(|v| v.as_str()).unwrap_or("<Unknown title>").to_string();
         self.artist = Self::get_artists(&data, tag.as_ref());
-        self.album = data
-            .get("album")
-            .and_then(|v| v.as_str())
-            .unwrap_or("<Unknown album>")
-            .to_string();
-        self.date = data
-            .get("date")
-            .and_then(|v| v.as_str())
-            .unwrap_or("<Unknown date>")
-            .to_string();
+        self.album = data.get("album").and_then(|v| v.as_str()).unwrap_or("<Unknown album>").to_string();
+        self.date = data.get("date").and_then(|v| v.as_str()).unwrap_or("<Unknown date>").to_string();
 
-        self.arturl = Self::get_arturl(&data, tag.as_ref())
-            .map_or_else(|| CONFIG.discord.fallback_art.clone(), |u| urlencode(&u));
+        self.arturl = Self::get_arturl(&data, tag.as_ref()).map_or_else(|| CONFIG.discord.fallback_art.clone(), |u| urlencode(&u));
 
         self.srcurl = Self::get_srcurl(&data, tag.as_ref()).map(|u| urlencode(&u));
         self.artist_url = Self::get_artisturl(tag.as_ref()).map(|u| urlencode(&u));
@@ -464,9 +404,7 @@ impl Track {
 }
 
 impl fmt::Display for Track {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(f, "{} - {}", self.artist, self.title)
-    }
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result { write!(f, "{} - {}", self.artist, self.title) }
 }
 
 fn hex_to_rgb(hex: &str) -> Option<(u8, u8, u8)> {

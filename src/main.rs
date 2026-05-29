@@ -1,14 +1,8 @@
-use std::{
-    env,
-    fs,
-    io::ErrorKind as IOE,
-    path::PathBuf,
-    process::exit,
-    sync::{
-        Arc,
-        LazyLock,
-    },
-};
+use std::io::ErrorKind as IOE;
+use std::path::PathBuf;
+use std::process::exit;
+use std::sync::{Arc, LazyLock};
+use std::{env, fs};
 
 use config::Config;
 use discord_rich_presence::DiscordIpcClient;
@@ -16,15 +10,9 @@ use integrations::connect_discord_rpc_client;
 use permitit::Permit;
 use rustfm_scrobble::Scrobbler;
 use tokio::sync::Mutex;
-use tracing::{
-    error,
-    info,
-};
+use tracing::{error, info};
 use tracing_appender::rolling;
-use tracing_subscriber::{
-    EnvFilter,
-    fmt,
-};
+use tracing_subscriber::{EnvFilter, fmt};
 
 mod args;
 mod config;
@@ -35,8 +23,7 @@ mod structs;
 
 pub static CONFIG: LazyLock<Config> = LazyLock::new(Config::load);
 pub static ARGS: LazyLock<args::Args> = LazyLock::new(args::parse_args);
-pub static RPC_CLIENT: LazyLock<Mutex<DiscordIpcClient>> =
-    LazyLock::new(|| Mutex::new(DiscordIpcClient::new(&CONFIG.discord.client_id)));
+pub static RPC_CLIENT: LazyLock<Mutex<DiscordIpcClient>> = LazyLock::new(|| Mutex::new(DiscordIpcClient::new(&CONFIG.discord.client_id)));
 pub static SCROBBLER: LazyLock<Mutex<Option<Arc<Scrobbler>>>> = LazyLock::new(|| Mutex::new(None));
 
 /// # Description
@@ -60,9 +47,7 @@ async fn main() -> ! {
     let (file_writer, _guard) = tracing_appender::non_blocking(file_appender);
 
     let log_level = env::var("TUUN_LOG_LEVEL").unwrap_or_else(|_| String::from("info"));
-    let filter = EnvFilter::new(format!(
-        "{log_level},rustls=info,ureq=info,winit=info,calloop=info,polling=info"
-    ));
+    let filter = EnvFilter::new(format!("{log_level},rustls=info,ureq=info,winit=info,calloop=info,polling=info"));
 
     tracing_subscriber::fmt()
         .with_env_filter(filter)

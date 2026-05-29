@@ -1,53 +1,22 @@
-use std::{
-    fs,
-    path::PathBuf,
-    process::exit,
-    sync::{
-        Arc,
-        LazyLock,
-        atomic::{
-            AtomicBool,
-            AtomicU32,
-            Ordering,
-        },
-    },
-};
+use std::fs;
+use std::path::PathBuf;
+use std::process::exit;
+use std::sync::atomic::{AtomicBool, AtomicU32, Ordering};
+use std::sync::{Arc, LazyLock};
 
 use anyhow::Result;
 use serde_json::Value;
-use tokio::{
-    io::{
-        AsyncBufReadExt,
-        AsyncWriteExt,
-        BufReader,
-    },
-    net::UnixStream,
-    process::Command,
-    sync::Mutex,
-    time::{
-        Duration,
-        sleep,
-    },
-};
-use tracing::{
-    debug,
-    error,
-    info,
-    instrument,
-    trace,
-    warn,
-};
+use tokio::io::{AsyncBufReadExt, AsyncWriteExt, BufReader};
+use tokio::net::UnixStream;
+use tokio::process::Command;
+use tokio::sync::Mutex;
+use tokio::time::{Duration, sleep};
+use tracing::{debug, error, info, instrument, trace, warn};
 use treats::InspectNone;
 
-use crate::{
-    ARGS,
-    CONFIG,
-    integrations::{
-        lastfm_now_playing,
-        lastfm_scrobble,
-    },
-    structs::Track,
-};
+use crate::integrations::{lastfm_now_playing, lastfm_scrobble};
+use crate::structs::Track;
+use crate::{ARGS, CONFIG};
 
 const SOCK_PATH: &str = "/tmp/tuun/mpvsocket";
 
@@ -63,8 +32,7 @@ static SCROBBLED: AtomicBool = AtomicBool::new(false);
 static NOW_PLAYING_SET: AtomicBool = AtomicBool::new(false);
 static EXTERNAL_COVER_ART_SET: AtomicBool = AtomicBool::new(false);
 
-static TRACK: LazyLock<Arc<Mutex<Track>>> =
-    LazyLock::new(|| Arc::new(Mutex::new(Track::default())));
+static TRACK: LazyLock<Arc<Mutex<Track>>> = LazyLock::new(|| Arc::new(Mutex::new(Track::default())));
 static QUEUE: LazyLock<PathBuf> = LazyLock::new(|| PathBuf::from("/tmp/tuun/quu.tpl"));
 
 pub async fn connect() -> Result<()> {
@@ -244,7 +212,7 @@ async fn handle_properties(json: Value) {
             | "playback-time" => {
                 trace!("mpv property: Playback time changed");
                 let mut track = TRACK.lock().await;
-                let time = json.get("data").and_then(Value::as_f64).unwrap_or(0.);
+                let time = json.get("data").and_then(Value::as_f64).unwrap_or(0.0);
                 trace!("Time: {time}");
 
                 // If a track is fresh, it can be scrobbled and its now playing status has not yet
@@ -267,8 +235,7 @@ async fn handle_properties(json: Value) {
                 // Set now playing status if the track has been playing for more than a
                 // configureable delay, or it's more than 5% through.
                 #[allow(clippy::cast_precision_loss)]
-                let delay =
-                    (track.duration * 0.05).min(CONFIG.general.now_playing_delay as f64 / 1000.);
+                let delay = (track.duration * 0.05).min(CONFIG.general.now_playing_delay as f64 / 1000.0);
 
                 if time >= delay && !NOW_PLAYING_SET.load(Ordering::Relaxed) {
                     NOW_PLAYING_SET.store(true, Ordering::Relaxed);
@@ -294,9 +261,7 @@ async fn handle_properties(json: Value) {
                 }
 
                 // Scrobble track if it's more than a configurable percent through.
-                if !SCROBBLED.load(Ordering::Relaxed)
-                    && time >= (track.duration * (f64::from(CONFIG.lastfm.scrobble_percent) / 100.))
-                {
+                if !SCROBBLED.load(Ordering::Relaxed) && time >= (track.duration * (f64::from(CONFIG.lastfm.scrobble_percent) / 100.0)) {
                     SCROBBLED.store(true, Ordering::Relaxed);
 
                     if CONFIG.lastfm.used {
@@ -358,19 +323,12 @@ pub async fn get_external_cover() -> Option<PathBuf> {
         .ok()?
         .take(EXTERNAL_COVER_ART_SEARCH_LIMIT)
         .filter_map(Result::ok)
-        .find(|entry| {
-            entry
-                .file_name()
-                .to_str()
-                .is_some_and(|s| s.starts_with("cover"))
-        })
+        .find(|entry| entry.file_name().to_str().is_some_and(|s| s.starts_with("cover")))
         .map(|entry| entry.path())
 }
 
 pub async fn use_external_cover_art() -> Option<()> {
-    let external_cover = get_external_cover()
-        .await
-        .inspect_none(|| debug!("No external cover art found"))?;
+    let external_cover = get_external_cover().await.inspect_none(|| debug!("No external cover art found"))?;
     info!("Attempting to use external cover art at {external_cover:?}");
 
     // album art flag passed to mpv; yes means static
@@ -389,19 +347,14 @@ pub async fn use_external_cover_art() -> Option<()> {
     .await
     .ok()?;
 
-    let json = send_command(r#"{ "command": ["get_property", "track-list"] }"#)
-        .await
-        .ok()?;
+    let json = send_command(r#"{ "command": ["get_property", "track-list"] }"#).await.ok()?;
 
     let tracks = json.get("data").and_then(|j| j.as_array())?.clone();
     let final_video_track = tracks.iter().rfind(|track| {
-        track
-            .get("type")
-            .is_some_and(|j| j.as_str() == Some("video"))
-            && track.get("title").is_some_and(|j| {
-                j.as_str()
-                    .is_some_and(|s| s.eq_ignore_ascii_case("artist picture"))
-            })
+        track.get("type").is_some_and(|j| j.as_str() == Some("video"))
+            && track
+                .get("title")
+                .is_some_and(|j| j.as_str().is_some_and(|s| s.eq_ignore_ascii_case("artist picture")))
     })?;
 
     send_command(format!(
@@ -418,8 +371,7 @@ pub async fn use_external_cover_art() -> Option<()> {
 #[instrument]
 pub async fn launch() {
     info!("Launching mpv...");
-    let to_shuffle: &str =
-        if ARGS.shuffle.unwrap_or(CONFIG.general.shuffle) { "yes" } else { "no" };
+    let to_shuffle: &str = if ARGS.shuffle.unwrap_or(CONFIG.general.shuffle) { "yes" } else { "no" };
 
     let mut mpv = Command::new("mpv")
         .arg(format!("--shuffle={to_shuffle}"))
@@ -439,10 +391,7 @@ pub async fn launch() {
     }
 
     for a in 1..=32 {
-        sleep(Duration::from_millis(
-            CONFIG.general.mpv_socket_poll_timeout as u64,
-        ))
-        .await;
+        sleep(Duration::from_millis(CONFIG.general.mpv_socket_poll_timeout as u64)).await;
         debug!("Polling mpv socket {a}/32...");
         if fs::metadata(SOCK_PATH).is_ok() {
             debug!("mpv socket was ok on attempt {a}");
@@ -476,10 +425,7 @@ pub async fn launch() {
 #[instrument]
 fn prequeue() -> Vec<String> {
     // FIXME: This can probably be written less grossly(?)
-    let playlist = &ARGS
-        .playlist
-        .clone()
-        .unwrap_or_else(|| CONFIG.general.playlist.clone());
+    let playlist = &ARGS.playlist.clone().unwrap_or_else(|| CONFIG.general.playlist.clone());
 
     debug!("Starting with playlist '{playlist}'");
     if !PathBuf::from(playlist).exists() {
@@ -489,10 +435,7 @@ fn prequeue() -> Vec<String> {
 
     let args = if QUEUE.exists() {
         debug!("Queue.tpl exists");
-        vec![
-            format!("--playlist={}", QUEUE.display()),
-            format!("--playlist={playlist}"),
-        ]
+        vec![format!("--playlist={}", QUEUE.display()), format!("--playlist={playlist}")]
     } else {
         vec![format!("--playlist={playlist}")]
     };

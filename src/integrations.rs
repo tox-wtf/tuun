@@ -1,48 +1,17 @@
-use std::{
-    sync::Arc,
-    time::{
-        Duration,
-        SystemTime,
-        UNIX_EPOCH,
-    },
-};
+use std::sync::Arc;
+use std::time::{Duration, SystemTime, UNIX_EPOCH};
 
-use anyhow::{
-    Result,
-    bail,
-};
-use discord_rich_presence::{
-    DiscordIpc,
-    activity::{
-        self,
-        Activity,
-        StatusDisplayType,
-    },
-    error::Error as DrpErr,
-};
+use anyhow::{Result, bail};
+use discord_rich_presence::DiscordIpc;
+use discord_rich_presence::activity::{self, Activity, StatusDisplayType};
+use discord_rich_presence::error::Error as DrpErr;
 use permitit::Permit;
-use rustfm_scrobble::{
-    Scrobble,
-    Scrobbler,
-};
+use rustfm_scrobble::{Scrobble, Scrobbler};
 use tokio::time::timeout;
-use tracing::{
-    debug,
-    error,
-    info,
-    instrument,
-    warn,
-};
+use tracing::{debug, error, info, instrument, warn};
 
-use crate::{
-    CONFIG,
-    RPC_CLIENT,
-    SCROBBLER,
-    structs::{
-        LastFM,
-        Track,
-    },
-};
+use crate::structs::{LastFM, Track};
+use crate::{CONFIG, RPC_CLIENT, SCROBBLER};
 
 #[instrument]
 /// Version of [`authenticate_lastfm_scrobbler()`] that doesn't check if the lock is taken
@@ -91,9 +60,7 @@ pub async fn lastfm_now_playing(track: Track) -> Result<()> {
 
     let scrobbler = scrobbler.clone();
 
-    let track = Scrobble::new(&track.get_primary_artist(),
-                              &track.title,
-                              &track.album);
+    let track = Scrobble::new(&track.get_primary_artist(), &track.title, &track.album);
 
     tokio::task::spawn_blocking(move || scrobbler.now_playing(&track)).await??;
     drop(scrobbler_lock);
@@ -202,10 +169,7 @@ async fn construct_small_assets(track: &Track) -> (String, String, String) {
 
     let tag = tag.unwrap();
     let pfp = track.artist_pfp.clone().unwrap();
-    let url = track
-        .artist_url
-        .clone()
-        .unwrap_or_else(|| CONFIG.discord.small_url.clone());
+    let url = track.artist_url.clone().unwrap_or_else(|| CONFIG.discord.small_url.clone());
 
     if let Some(org) = Track::get_organization(&tag) {
         return (org, pfp, url);
@@ -221,72 +185,57 @@ async fn create_rpc_payload(track: &Track, now_ago: Duration) -> Activity<'_> {
     let (small_text, small_image, small_url) = construct_small_assets(track).await;
 
     let assets = match track.album_url.as_deref() {
-        Some(album_url) => {
-            activity::Assets::new()
-                .large_image(&track.arturl)
-                .large_text(&track.album)
-                .large_url(album_url)
-                .small_image(small_image)
-                .small_text(small_text)
-                .small_url(small_url)
-        },
-        None => {
-            activity::Assets::new()
-                .large_image(&track.arturl)
-                .large_text(&track.album)
-                .large_url(&track.arturl)
-                .small_image(small_image)
-                .small_text(small_text)
-                .small_url(small_url)
-        }
+        | Some(album_url) => activity::Assets::new()
+            .large_image(&track.arturl)
+            .large_text(&track.album)
+            .large_url(album_url)
+            .small_image(small_image)
+            .small_text(small_text)
+            .small_url(small_url),
+        | None => activity::Assets::new()
+            .large_image(&track.arturl)
+            .large_text(&track.album)
+            .large_url(&track.arturl)
+            .small_image(small_image)
+            .small_text(small_text)
+            .small_url(small_url),
     };
 
     debug!("Created rich presence activity assets");
 
     // I don't see us hitting this, and we'd panic anyway
     #[allow(clippy::unchecked_time_subtraction)]
-    let start = SystemTime::now()
-        .duration_since(UNIX_EPOCH)
-        .expect("Grandfather paradox or something idk")
-        - now_ago;
+    let start = SystemTime::now().duration_since(UNIX_EPOCH).expect("Grandfather paradox or something idk") - now_ago;
     let end = start + Duration::from_secs_f64(track.duration);
 
     #[allow(clippy::cast_possible_wrap, clippy::cast_possible_truncation)]
-    let timestamp = activity::Timestamps::new()
-        .start(start.as_millis() as i64)
-        .end(end.as_millis() as i64);
+    let timestamp = activity::Timestamps::new().start(start.as_millis() as i64).end(end.as_millis() as i64);
 
     let payload = match (&track.artist_url, &track.srcurl) {
-        (Some(artist_url), Some(srcurl)) => {
-            activity::Activity::new()
-                .state(&track.artist)
-                .state_url(artist_url)
-                .details(&track.title)
-                .details_url(srcurl)
-                .assets(assets)
-                .activity_type(activity::ActivityType::Listening)
-                .status_display_type(StatusDisplayType::Details)
-                .timestamps(timestamp)
-        },
-        (None, Some(srcurl)) => {
-            activity::Activity::new()
-                .state(&track.artist)
-                .details(&track.title)
-                .details_url(srcurl)
-                .assets(assets)
-                .activity_type(activity::ActivityType::Listening)
-                .status_display_type(StatusDisplayType::Details)
-                .timestamps(timestamp)
-        },
-        _ => {
-            activity::Activity::new()
-                .state(&track.artist)
-                .details(&track.title)
-                .assets(assets)
-                .activity_type(activity::ActivityType::Listening)
-                .status_display_type(StatusDisplayType::Details)
-                .timestamps(timestamp)
-        }
+        | (Some(artist_url), Some(srcurl)) => activity::Activity::new()
+            .state(&track.artist)
+            .state_url(artist_url)
+            .details(&track.title)
+            .details_url(srcurl)
+            .assets(assets)
+            .activity_type(activity::ActivityType::Listening)
+            .status_display_type(StatusDisplayType::Details)
+            .timestamps(timestamp),
+        | (None, Some(srcurl)) => activity::Activity::new()
+            .state(&track.artist)
+            .details(&track.title)
+            .details_url(srcurl)
+            .assets(assets)
+            .activity_type(activity::ActivityType::Listening)
+            .status_display_type(StatusDisplayType::Details)
+            .timestamps(timestamp),
+        | _ => activity::Activity::new()
+            .state(&track.artist)
+            .details(&track.title)
+            .assets(assets)
+            .activity_type(activity::ActivityType::Listening)
+            .status_display_type(StatusDisplayType::Details)
+            .timestamps(timestamp),
     };
 
     debug!("Created rich presence activity payload");
