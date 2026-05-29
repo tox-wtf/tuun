@@ -941,7 +941,7 @@ checksum = "4dec2815cf5402e7e2642e81b49ac511db0d01a213dbeea2fd6ae3f5c0a9bc7f"
 
 [[package]]
 name = "tuun"
-version = "5.11.1"
+version = "5.11.1+dev"
 dependencies = [
  "anyhow",
  "clap",
