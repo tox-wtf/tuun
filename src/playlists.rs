@@ -58,7 +58,7 @@ pub fn create_all_playlist() {
 
     let songs = fs::read_dir(&CONFIG.general.music_dir)
         .expect("Failed to read music directory")
-        .map_while(Result::ok)
+        .filter_map(Result::ok)
         .map(|e| e.path())
         .filter(|p| p.is_file())
         .collect::<Vec<_>>();
@@ -80,7 +80,7 @@ pub fn create_recent_playlist() {
 
     let mut songs = fs::read_dir(&CONFIG.general.music_dir)
         .expect("Failed to read music directory")
-        .map_while(Result::ok)
+        .filter_map(Result::ok)
         .map(|e| e.path())
         .filter_map(|e| {
             e.metadata()

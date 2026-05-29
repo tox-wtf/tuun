@@ -934,6 +934,12 @@ dependencies = [
 ]
 
 [[package]]
+name = "treats"
+version = "0.0.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "4dec2815cf5402e7e2642e81b49ac511db0d01a213dbeea2fd6ae3f5c0a9bc7f"
+
+[[package]]
 name = "tuun"
 version = "5.10.0+dev"
 dependencies = [
@@ -952,6 +958,7 @@ dependencies = [
  "tracing",
  "tracing-appender",
  "tracing-subscriber",
+ "treats",
  "urlencoding",
 ]
 

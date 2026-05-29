@@ -9,11 +9,7 @@ use std::{
     time::Duration,
 };
 
-use anyhow::{
-    Context,
-    Result,
-    bail,
-};
+use anyhow::Result;
 use id3::{
     Content,
     Tag,
@@ -37,6 +33,7 @@ use crate::{
         LOOPED,
         MUTED,
         VOLUME,
+        get_filepath,
         send_command,
     },
 };
@@ -136,25 +133,6 @@ impl Track {
     //     let command = r#" { "command" : [ "get_property", "metadata" ] "#;
     //     send_command(command).await
     // }
-
-    pub async fn query_filepath(&self) -> Result<PathBuf> {
-        let command = r#" { "command" : [ "get_property", "path" ] } "#;
-        let Ok(data) = send_command(command).await else {
-            warn!("Failed to query path");
-            bail!("Failed to query path");
-        };
-
-        let Some(data) = data.as_object() else {
-            warn!("MPV returned invalid JSON");
-            bail!("Invalid JSON");
-        };
-
-        let filename = data
-            .get("data")
-            .and_then(|v| v.as_str())
-            .context("Filename not present")?;
-        Ok(PathBuf::from(filename))
-    }
 
     #[instrument(skip(tag))]
     pub fn get_organization(tag: &Tag) -> Option<String> {
@@ -283,9 +261,7 @@ impl Track {
         // fallbacks (backwards compatability)
         let srcurl = tag.frames().find_map(|f| match f.content() {
             | Content::ExtendedLink(l) if l.description == "Source" => Some(l.link.clone()),
-            | Content::ExtendedText(t) if t.description == "srcurl" => {
-                Some(strip_null(&t.value))
-            },
+            | Content::ExtendedText(t) if t.description == "srcurl" => Some(strip_null(&t.value)),
             | _ if f.id() == "WOAS" => f.content().link().map(ToString::to_string),
             | _ => None,
         });
@@ -317,8 +293,8 @@ impl Track {
     pub async fn read_id3_tag(&self) -> Option<Tag> {
         let mut filepath: Option<PathBuf> = None;
         for _ in 0..4 {
-            if let Ok(path) = self.query_filepath().await {
-                filepath = Some(path);
+            filepath = get_filepath().await;
+            if filepath.is_some() {
                 break;
             }
         }
@@ -350,8 +326,8 @@ impl Track {
 
         let mut filepath: Option<PathBuf> = None;
         for _ in 0..4 {
-            if let Ok(path) = self.query_filepath().await {
-                filepath = Some(path);
+            filepath = get_filepath().await;
+            if filepath.is_some() {
                 break;
             }
         }

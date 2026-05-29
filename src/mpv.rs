@@ -37,6 +37,7 @@ use tracing::{
     trace,
     warn,
 };
+use treats::InspectNone;
 
 use crate::{
     ARGS,
@@ -55,7 +56,7 @@ pub static PAUSED: AtomicBool = AtomicBool::new(false);
 pub static MUTED: AtomicBool = AtomicBool::new(false);
 pub static VOLUME: AtomicU32 = AtomicU32::new(0);
 
-static FRESH: AtomicBool = AtomicBool::new(false);
+static SCROBBLED: AtomicBool = AtomicBool::new(false);
 static NOW_PLAYING_SET: AtomicBool = AtomicBool::new(false);
 
 static TRACK: LazyLock<Arc<Mutex<Track>>> =
@@ -88,7 +89,7 @@ pub async fn connect() -> Result<()> {
     }
 
     // Continuously read lines from mpv's socket
-    let mut line = String::with_capacity(64);
+    let mut line = String::with_capacity(4096);
     loop {
         let bytes_read = reader.read_line(&mut line).await?;
         if bytes_read == 0 {
@@ -101,7 +102,7 @@ pub async fn connect() -> Result<()> {
                 handle_events(json).await;
             },
             | Err(e) => {
-                eprintln!("Failed to parse JSON: {e}");
+                error!("Failed to parse JSON: {e}");
             },
         }
         line.clear();
@@ -111,22 +112,23 @@ pub async fn connect() -> Result<()> {
 }
 
 #[instrument(skip(command), level = "debug")]
-pub async fn send_command(command: &str) -> Result<Value> {
+pub async fn send_command<S: AsRef<str>>(command: S) -> Result<Value> {
     let stream = UnixStream::connect(SOCK_PATH).await?;
     let (reader, mut writer) = stream.into_split();
     let mut reader = BufReader::new(reader);
     debug!("Connected to mpv socket {SOCK_PATH:?}");
 
+    let command = command.as_ref();
     writer.write_all(command.as_bytes()).await?;
     writer.write_all(b"\n").await?;
     writer.flush().await?;
-    debug!("Sent mpv command: {command:#}");
+    trace!("Sent mpv command: {command:#}");
 
     let mut response = String::with_capacity(64);
     reader.read_line(&mut response).await?;
 
     let json: Value = serde_json::from_str(&response)?;
-    debug!("Received mpv response: {json:#}");
+    trace!("Received mpv response: {json:#}");
 
     Ok(json)
 }
@@ -244,7 +246,7 @@ async fn handle_properties(json: Value) {
                 // been set.
                 if time == 0.0 {
                     debug!("Track is fresh");
-                    FRESH.store(true, Ordering::Relaxed);
+                    SCROBBLED.store(false, Ordering::Relaxed);
                     NOW_PLAYING_SET.store(false, Ordering::Relaxed);
                 }
 
@@ -281,10 +283,10 @@ async fn handle_properties(json: Value) {
                 }
 
                 // Scrobble track if it's more than a configurable percent through.
-                if time >= (track.duration * (f64::from(CONFIG.lastfm.scrobble_percent) / 100.))
-                    && FRESH.load(Ordering::Relaxed)
+                if !SCROBBLED.load(Ordering::Relaxed)
+                    && time >= (track.duration * (f64::from(CONFIG.lastfm.scrobble_percent) / 100.))
                 {
-                    FRESH.store(false, Ordering::Relaxed);
+                    SCROBBLED.store(true, Ordering::Relaxed);
 
                     if CONFIG.lastfm.used {
                         // TODO: Implement display for track so the logs look nicer
@@ -304,6 +306,22 @@ async fn handle_properties(json: Value) {
             },
         }
     }
+}
+
+/// Return a path to the currently playing track, according to MPV
+pub async fn get_filepath() -> Option<PathBuf> {
+    let Ok(data) = send_command(r#" { "command" : [ "get_property", "path" ] } "#).await else {
+        warn!("Failed to get path");
+        return None;
+    };
+
+    let Some(data) = data.as_object() else {
+        warn!("MPV returned invalid JSON");
+        return None;
+    };
+
+    let filename = data.get("data")?.as_str()?;
+    Some(PathBuf::from(filename))
 }
 
 #[instrument]
