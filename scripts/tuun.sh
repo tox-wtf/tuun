@@ -1,7 +1,7 @@
-#!/usr/bin/env sh
+#!/usr/bin/env bash
 
 # https://github.com/tox-wtf/tuun/issues/2
-if [ -e "/tmp/tuun/tuun.lock" ]; then
+if [[ -e "/tmp/tuun/tuun.lock" ]]; then
     if pidof %LIBEXECDIR%/tuun; then
         echo "It looks like tuun is already running" >&2
         echo "If you're sure it's not, you can try removing /tmp/tuun/tuun.lock" >&2
@@ -12,11 +12,9 @@ if [ -e "/tmp/tuun/tuun.lock" ]; then
 fi
 
 cleanup() {
-    rm -f "/tmp/tuun/quu.tpl"
-    rm -f "/tmp/tuun/tuun.lock"
-    pkill -f %LIBEXECDIR%/tuun >/dev/null 2>&1
-    [ -r "/tmp/tuun/tuun-mpv.pid" ] && kill "$(cat /tmp/tuun/tuun-mpv.pid)" >/dev/null 2>&1
-    rm -f "/tmp/tuun/tuun-mpv.pid"
+    pkill -f "%LIBEXECDIR%/tuun" &>/dev/null
+    [[ -r /tmp/tuun/tuun-mpv.pid ]] && kill "$(cat /tmp/tuun/tuun-mpv.pid)" &>/dev/null
+    rm -f /tmp/tuun/{quu.tpl,tuun.lock,tuun-mpv.pid}
     tput cvvis
 }
 
@@ -24,7 +22,7 @@ trap cleanup EXIT TERM
 
 tput civis
 
-if ! [ -e %LIBEXECDIR%/tuun ]; then
+if ! [[ -e %LIBEXECDIR%/tuun ]]; then
     echo "Missing tuun at %LIBEXECDIR%/tuun" >&2
     echo "Did you run make install?" >&2
     exit 1
