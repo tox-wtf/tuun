@@ -137,22 +137,22 @@ pub async fn send_command<S: AsRef<str>>(command: S) -> Result<Value> {
     Ok(json)
 }
 
-/// # Description
-/// Handles MPV events.
+/// Handles mpv events
+///
 /// Supported events include start-file, end-file, and property-change.
 async fn handle_events(json: Value) {
     if let Some(event) = json.get("event").and_then(|v| v.as_str()) {
         match event {
             | "start-file" => {
-                debug!("MPV Event: New file started");
+                debug!("mpv event: New file started");
             },
             | "end-file" => {
                 if let Some(reason) = json.get("reason").and_then(|v| v.as_str()) {
                     if reason == "quit" {
-                        info!("MPV quit. Exiting...");
+                        info!("mpv quit. Exiting...");
                         exit(0)
                     } else {
-                        debug!("MPV Event: EOF:\n{reason:#}");
+                        debug!("mpv event: EOF:\n{reason:#}");
                     }
                 }
             },
@@ -161,14 +161,15 @@ async fn handle_events(json: Value) {
                 handle_properties(json).await;
             },
             | _ => {
-                trace!("MPV Event: Received uncategorized event:\n{event:#}");
+                trace!("mpv event: Received uncategorized event:\n{event:#}");
             },
         }
     }
 }
 
-/// Handles MPV properties.
-/// Supported properties include filename, pause, loop-file, mute, and playback-time
+/// Handles mpv properties
+///
+/// Supported properties include filename, pause, loop-file, mute, and playback-time.
 #[instrument(level = "trace")]
 async fn handle_properties(json: Value) {
     if let Err(e) = queue().await {
@@ -193,7 +194,7 @@ async fn handle_properties(json: Value) {
                 }
             },
             | "metadata" => {
-                debug!("MPV Property: Metadata changed");
+                debug!("mpv property: Metadata changed");
                 debug!("Metadata property: {json:#}");
 
                 let mut track = TRACK.lock().await;
@@ -241,7 +242,7 @@ async fn handle_properties(json: Value) {
                 }
             },
             | "playback-time" => {
-                trace!("MPV Property: Playback time changed");
+                trace!("mpv property: Playback time changed");
                 let mut track = TRACK.lock().await;
                 let time = json.get("data").and_then(Value::as_f64).unwrap_or(0.);
                 trace!("Time: {time}");
@@ -312,13 +313,13 @@ async fn handle_properties(json: Value) {
                 }
             },
             | _ => {
-                warn!("MPV Property: Received unrecognized property:\n{json:#}");
+                warn!("mpv property: Received unrecognized property:\n{json:#}");
             },
         }
     }
 }
 
-/// Return a path to the currently playing track, according to MPV
+/// Return a path to the currently playing track, according to mpv
 pub async fn get_filepath() -> Option<PathBuf> {
     let Ok(data) = send_command(r#" { "command" : [ "get_property", "path" ] } "#).await else {
         warn!("Failed to get path");
@@ -326,7 +327,7 @@ pub async fn get_filepath() -> Option<PathBuf> {
     };
 
     let Some(data) = data.as_object() else {
-        warn!("MPV returned invalid JSON");
+        warn!("mpv returned invalid JSON");
         return None;
     };
 
@@ -442,9 +443,9 @@ pub async fn launch() {
             CONFIG.general.mpv_socket_poll_timeout as u64,
         ))
         .await;
-        debug!("Polling MPV socket {a}/32...");
+        debug!("Polling mpv socket {a}/32...");
         if fs::metadata(SOCK_PATH).is_ok() {
-            debug!("MPV socket was ok on attempt {a}");
+            debug!("mpv socket was ok on attempt {a}");
             break;
         }
     }
@@ -453,7 +454,7 @@ pub async fn launch() {
         && let Some(code) = optcode
         && !code.success()
     {
-        error!("MPV exited with a failure");
+        error!("mpv exited with a failure");
         if ARGS.playlist.is_some() {
             error!("This is most likely caused by your playlist referencing inaccessible tracks");
         }

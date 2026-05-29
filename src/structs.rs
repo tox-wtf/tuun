@@ -313,7 +313,7 @@ impl Track {
     pub async fn update_metadata(&mut self, metadata: &Value) -> Result<()> {
         let Some(data) = metadata.get("data").and_then(|d| d.as_object()) else {
             // This typically only happens in edge cases where no metadata exists yet, such as when
-            // MPV has just started
+            // mpv has just started
             debug!("Failed to get metadata from {metadata:#}");
             debug!("Not updating metadata");
             return Ok(());

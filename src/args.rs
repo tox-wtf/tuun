@@ -1,6 +1,6 @@
 use clap::Parser;
 
-/// Tuun: A simple music player using MPV as a backend
+/// Tuun: A simple music player using mpv as a backend
 #[derive(Parser, Debug)]
 #[command(version, about)]
 pub struct Args {

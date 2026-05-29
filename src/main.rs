@@ -50,7 +50,7 @@ pub static SCROBBLER: LazyLock<Mutex<Option<Arc<Scrobbler>>>> = LazyLock::new(||
 ///     5. Generate playlists
 ///     6. Optionally connect to Discord
 ///     7. Optionally authenticate with `LastFM`
-///     8. Launch MPV
+///     8. Launch mpv
 ///     9. Block forever
 #[tokio::main]
 async fn main() -> ! {
@@ -118,10 +118,10 @@ async fn main() -> ! {
 
     // Launch mpv
     tokio::spawn(async {
-        info!("Launching MPV");
+        info!("Launching mpv");
         mpv::launch().await;
         if let Err(e) = mpv::connect().await {
-            error!("Failed to connect to MPV's socket: {e:#?}");
+            error!("Failed to connect to mpv's socket: {e:#?}");
         }
     });
 
