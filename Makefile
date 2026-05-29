@@ -31,8 +31,7 @@ lint:
 fmt: format
 
 format:
-	rustup component add --toolchain nightly-x86_64-unknown-linux-gnu rustfmt
-	cargo +nightly fmt
+	cargo fmt
 
 install:
 	install -Dm644 ./config.toml            $(DESTDIR)$(DATADIR)/default_config.toml
