@@ -51,6 +51,9 @@ use crate::{
 
 const SOCK_PATH: &str = "/tmp/tuun/mpvsocket";
 
+/// The maximum number of directory entries checked when looking for external cover art
+const EXTERNAL_COVER_ART_SEARCH_LIMIT: usize = 128;
+
 pub static LOOPED: AtomicBool = AtomicBool::new(false);
 pub static PAUSED: AtomicBool = AtomicBool::new(false);
 pub static MUTED: AtomicBool = AtomicBool::new(false);
@@ -58,6 +61,7 @@ pub static VOLUME: AtomicU32 = AtomicU32::new(0);
 
 static SCROBBLED: AtomicBool = AtomicBool::new(false);
 static NOW_PLAYING_SET: AtomicBool = AtomicBool::new(false);
+static EXTERNAL_COVER_ART_SET: AtomicBool = AtomicBool::new(false);
 
 static TRACK: LazyLock<Arc<Mutex<Track>>> =
     LazyLock::new(|| Arc::new(Mutex::new(Track::default())));
@@ -243,15 +247,21 @@ async fn handle_properties(json: Value) {
                 trace!("Time: {time}");
 
                 // If a track is fresh, it can be scrobbled and its now playing status has not yet
-                // been set.
+                // been set. It may also need external album art to be set.
                 if time == 0.0 {
                     debug!("Track is fresh");
                     SCROBBLED.store(false, Ordering::Relaxed);
                     NOW_PLAYING_SET.store(false, Ordering::Relaxed);
+                    EXTERNAL_COVER_ART_SET.store(false, Ordering::Relaxed);
                 }
 
                 track.update_progress(time);
                 track.display();
+
+                if !EXTERNAL_COVER_ART_SET.load(Ordering::Relaxed) {
+                    use_external_cover_art().await;
+                    EXTERNAL_COVER_ART_SET.store(true, Ordering::Relaxed);
+                }
 
                 // Set now playing status if the track has been playing for more than a
                 // configureable delay, or it's more than 5% through.
@@ -322,6 +332,86 @@ pub async fn get_filepath() -> Option<PathBuf> {
 
     let filename = data.get("data")?.as_str()?;
     Some(PathBuf::from(filename))
+}
+
+/// Return a path to this track's external cover art, if any
+///
+/// This cover art may be either animated or static, and should exist in the same directory as the
+/// track
+pub async fn get_external_cover() -> Option<PathBuf> {
+    debug!("Checking if external cover art exists");
+
+    let mut filepath: Option<PathBuf> = None;
+    for _ in 0..4 {
+        filepath = get_filepath().await;
+        if filepath.is_some() {
+            break
+        }
+    }
+
+    let filepath = filepath?;
+    let parent = filepath.parent()?;
+
+    parent
+        .read_dir()
+        .ok()?
+        .take(EXTERNAL_COVER_ART_SEARCH_LIMIT)
+        .filter_map(Result::ok)
+        .find(|entry| {
+            entry
+                .file_name()
+                .to_str()
+                .is_some_and(|s| s.starts_with("cover"))
+        })
+        .map(|entry| entry.path())
+}
+
+pub async fn use_external_cover_art() -> Option<()> {
+    let external_cover = get_external_cover()
+        .await
+        .inspect_none(|| debug!("No external cover art found"))?;
+    info!("Attempting to use external cover art at {external_cover:?}");
+
+    // album art flag passed to mpv; yes means static
+    let album_art_flag = match external_cover.extension()?.to_str()? {
+        | "mp4" | "gif" => "no",
+        | _ => "yes",
+    };
+
+    debug!("Adding video track for external cover art");
+    send_command(format!(
+        // url, flags, title, lang, album_art_flag
+        r#"{{ "command": ["video-add", "{}", "", "", "{}"] }}"#,
+        external_cover.to_str()?,
+        album_art_flag,
+    ))
+    .await
+    .ok()?;
+
+    let json = send_command(r#"{ "command": ["get_property", "track-list"] }"#)
+        .await
+        .ok()?;
+
+    let tracks = json.get("data").and_then(|j| j.as_array())?.clone();
+    let final_video_track = tracks.iter().rfind(|track| {
+        track
+            .get("type")
+            .is_some_and(|j| j.as_str() == Some("video"))
+            && track.get("title").is_some_and(|j| {
+                j.as_str()
+                    .is_some_and(|s| s.eq_ignore_ascii_case("artist picture"))
+            })
+    })?;
+
+    send_command(format!(
+        r#"{{ "command": ["set_property", "vid", {}] }}"#,
+        final_video_track.get("id")?.as_u64()?
+    ))
+    .await
+    .ok()?;
+
+    debug!("Added video track for external cover art");
+    Some(())
 }
 
 #[instrument]
