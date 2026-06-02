@@ -7,6 +7,19 @@
 > Major ones are prefixed with **[!!]**.
 
 
+## 5.11.2 - 2026-06-02 01:25:37 -0500
+
+### Features
+
+ - Loop video track
+ - Shorter timestamps for logs
+
+### Chores
+
+ - Update dependencies
+ - Set dev version
+
+
 ## 5.11.1 - 2026-05-29 03:59:23 -0500
 
 ### Fixes
