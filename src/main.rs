@@ -2,6 +2,7 @@ use std::io::ErrorKind as IOE;
 use std::path::PathBuf;
 use std::process::exit;
 use std::sync::{Arc, LazyLock};
+use std::time::Instant;
 use std::{env, fs};
 
 use config::Config;
@@ -12,7 +13,8 @@ use rustfm_scrobble::Scrobbler;
 use tokio::sync::Mutex;
 use tracing::{error, info};
 use tracing_appender::rolling;
-use tracing_subscriber::{EnvFilter, fmt};
+use tracing_subscriber::EnvFilter;
+use tracing_subscriber::fmt::time::FormatTime;
 
 mod args;
 mod config;
@@ -53,7 +55,7 @@ async fn main() -> ! {
         .with_env_filter(filter)
         .with_level(true)
         .with_target(true)
-        .with_timer(fmt::time::uptime())
+        .with_timer(Uptime::new())
         .with_writer(file_writer)
         .with_line_number(true)
         .compact()
@@ -113,5 +115,24 @@ async fn main() -> ! {
     // Hang out forever
     loop {
         std::thread::park();
+    }
+}
+
+/// # Uptime struct for timestamp formatting in logs
+struct Uptime(Instant);
+
+impl Uptime {
+    /// # Create a new [`Uptime`]
+    #[inline]
+    #[must_use]
+    fn new() -> Self { Self(Instant::now()) }
+}
+
+impl FormatTime for Uptime {
+    fn format_time(&self, w: &mut tracing_subscriber::fmt::format::Writer<'_>) -> std::fmt::Result {
+        let elapsed = self.0.elapsed();
+        let s = elapsed.as_secs();
+        let ms = elapsed.subsec_millis();
+        write!(w, "{s:>4}.{ms:03}")
     }
 }
