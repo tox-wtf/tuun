@@ -12,7 +12,7 @@ use tokio::process::Command;
 use tokio::sync::Mutex;
 use tokio::time::{Duration, sleep};
 use tracing::{debug, error, info, instrument, trace, warn};
-use treats::InspectNone;
+use treats::{Discard, InspectNone};
 
 use crate::integrations::{lastfm_now_playing, lastfm_scrobble};
 use crate::structs::Track;
@@ -260,6 +260,13 @@ async fn handle_properties(json: Value) {
                     }
                 }
 
+                if time >= delay && time > track.duration {
+                    // This occurs for tracks with external cover art. I can't think of a great way
+                    // to (finitely) loop a video track until the audio track ends.
+                    warn!("Exceeded track duration; forcing next song");
+                    send_command(r#" { "command" : [ "playlist-next" ] } "#).await.discard();
+                }
+
                 // Scrobble track if it's more than a configurable percent through.
                 if !SCROBBLED.load(Ordering::Relaxed) && time >= (track.duration * (f64::from(CONFIG.lastfm.scrobble_percent) / 100.0)) {
                     SCROBBLED.store(true, Ordering::Relaxed);
@@ -347,8 +354,13 @@ pub async fn use_external_cover_art() -> Option<()> {
     .await
     .ok()?;
 
-    let json = send_command(r#"{ "command": ["get_property", "track-list"] }"#).await.ok()?;
+    debug!("Looping video track");
+    let response = send_command(r#"{ "command": ["change-list", "vf", "append", "loop=-1:32767:0"] }"#)
+        .await
+        .ok()?;
+    debug_assert_ne!(response.get("error")?.as_str()?.to_ascii_lowercase(), "success", "Loop command is incorrect");
 
+    let json = send_command(r#"{ "command": ["get_property", "track-list"] }"#).await.ok()?;
     let tracks = json.get("data").and_then(|j| j.as_array())?.clone();
     let external_cover_art_track = tracks
         .iter()
