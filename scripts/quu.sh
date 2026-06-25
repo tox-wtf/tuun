@@ -14,6 +14,8 @@ fi
 
 mkdir -p /tmp/tuun
 
+SORT="${SORT:-sort}" # can be shuf if you want random songs, but this means fzf's results won't be sorted
+
 # Gather selected songs
 #
 # Then, write them to the queue, and apply some fixes:
@@ -28,7 +30,7 @@ mkdir -p /tmp/tuun
             \( -iname '*.mp3' -o -iname '*.opus' -o -iname '*.wav' -o -iname '*.m4a' -o -iname '*.ogg' -o -iname '*.flac' \) |
                 sed "s,$SONG_DIR/,,"
     fi
-} | fzm |
+} | $SORT | fzm --exact --no-sort |
     sed -e "s,^,$SONG_DIR/,"    \
         -e 's,\\,\\\\,g'        \
         -e 's,",\\",g'          \
