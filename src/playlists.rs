@@ -1,6 +1,7 @@
 // src/playlists.rs
 //! Some logic for handling playlists
 
+use std::ffi::OsStr;
 use std::fs;
 use std::path::PathBuf;
 
@@ -42,18 +43,28 @@ pub fn create_all_playlist() {
 
     // only recreate all.tpl on restarts since it resides in /tmp
     if path.exists() {
-        return;
+        return
     }
 
     debug!("Creating the all playlist...");
     let all_playlist = Playlist::new(path);
 
-    let songs = fs::read_dir(&CONFIG.general.music_dir)
-        .expect("Failed to read music directory")
-        .filter_map(Result::ok)
-        .map(|e| e.path())
-        .filter(|p| p.is_file())
+    let mut builder = ignore::WalkBuilder::new(&CONFIG.general.music_dir);
+    builder.ignore(false);
+    builder.git_ignore(false);
+    builder.git_exclude(false);
+    builder.hidden(true);
+    let walker = builder.build();
+
+    let songs = walker.filter_map(Result::ok)
+        .filter(|entry| {
+            entry.file_type().is_some_and(|ft| ft.is_file()) &&
+                entry.path().extension() == Some(OsStr::new("mp3"))
+        })
+        .map(|entry| entry.path().to_path_buf())
         .collect::<Vec<_>>();
+
+    debug!("Collected songs: {songs:#?}");
 
     all_playlist.write(&songs);
     info!("Created the all playlist")

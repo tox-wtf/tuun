@@ -24,6 +24,7 @@ clap = { version = "4.5", features = ["derive"] }
 discord-rich-presence = { git = "https://github.com/vionya/discord-rich-presence" }
 homedir = { version = "0.3.6", default-features = false }
 id3 = { version = "1.16", default-features = false }
+ignore = { version = "0.4", features = ["simd-accel"] }
 once_cell = "1.20"
 permitit = "0.1"
 rustfm-scrobble = { git = "https://github.com/tox-wtf/rustfm-scrobble" }
