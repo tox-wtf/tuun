@@ -21,6 +21,7 @@ $ALACRITTY \
     -e sh -c "
     fzf --color=bw --border=horizontal --reverse --pointer='$POINTER ' --no-scrollbar \
         --prompt='$POINTER ' --input-border=none --no-separator --multi --ellipsis='' \
+        $* \
     $( [ -s "$infile" ] && echo "< $infile") > $fifo
     " || {
         echo "Failed to create an alacritty window" >&2
