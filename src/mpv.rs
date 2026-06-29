@@ -354,11 +354,13 @@ pub async fn use_external_cover_art() -> Option<()> {
     .await
     .ok()?;
 
-    debug!("Looping video track");
-    let response = send_command(r#"{ "command": ["change-list", "vf", "append", "loop=-1:32767:0"] }"#)
-        .await
-        .ok()?;
-    debug_assert_ne!(response.get("error")?.as_str()?.to_ascii_lowercase(), "success", "Loop command is incorrect");
+    // NOTE: This causes an effective memory leak since ffmpeg does not drop looped frames. For
+    // sufficiently large videos, this can take down the entire system.
+    // debug!("Looping video track");
+    // let response = send_command(r#"{ "command": ["change-list", "vf", "append", "loop=-1:32767:0"] }"#)
+    //     .await
+    //     .ok()?;
+    // debug_assert_ne!(response.get("error")?.as_str()?.to_ascii_lowercase(), "success", "Loop command is incorrect");
 
     let json = send_command(r#"{ "command": ["get_property", "track-list"] }"#).await.ok()?;
     let tracks = json.get("data").and_then(|j| j.as_array())?.clone();
